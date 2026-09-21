@@ -56,7 +56,7 @@ Prebuilt binaries will be attached to [GitHub releases](../../releases) once v0.
 Requirements: Node 20+, pnpm 9+, Rust 1.80+, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
 
 ```sh
-git clone https://github.com//claude-code-orrery
+git clone https://github.com/AhsanRao/claude-code-orrery
 cd orrery
 pnpm install
 pnpm app:dev      # desktop app with hot reload

@@ -14,4 +14,4 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 - Project docs: architecture, data sources, design system, zero-impact policy, project plan.
 - Project-scoped Claude Code skills and plugin configuration for contributors.
 
-[Unreleased]: https://github.com//claude-code-orrery/compare/main...HEAD
+[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/main...HEAD
