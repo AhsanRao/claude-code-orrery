@@ -2,7 +2,7 @@
   "name": "orrery",
   "version": "0.1.0",
   "private": true,
-  "description": "A live orrery for your Claude Code sessions — see every session, agent and tool call as it happens.",
+  "description": "A live orrery for your Claude Code sessions \u2014 see every session, agent and tool call as it happens.",
   "license": "MIT",
   "type": "module",
   "scripts": {
