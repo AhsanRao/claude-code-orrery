@@ -45,7 +45,7 @@ pub fn list_transcripts(home: &Path) -> Vec<TranscriptSummary> {
             });
         }
     }
-    out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    out.sort_by_key(|t| std::cmp::Reverse(t.modified_at));
     out
 }
 
