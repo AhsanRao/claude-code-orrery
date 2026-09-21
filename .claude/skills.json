@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "description": "Skills and plugins this repository uses with Claude Code. Install with scripts/setup-skills.sh.",
+  "scope": "project",
+  "skills": [
+    {
+      "name": "apple-design",
+      "source": "github",
+      "repo": "emilkowalski/skills",
+      "path": "skills/apple-design",
+      "ref": "main",
+      "dest": ".claude/skills/apple-design"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "source": "github",
+      "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "path": ".claude/skills/ui-ux-pro-max",
+      "ref": "main",
+      "dest": ".claude/skills/ui-ux-pro-max"
+    }
+  ],
+  "marketplaces": [{ "name": "ponytail", "source": "github", "repo": "DietrichGebert/ponytail" }],
+  "plugins": [
+    { "name": "ponytail", "marketplace": "ponytail" },
+    { "name": "frontend-design", "marketplace": "claude-plugins-official" }
+  ]
+}

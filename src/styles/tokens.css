@@ -1,0 +1,137 @@
+/*
+ * Orrery design tokens. Dark-first: the observatory is a night instrument.
+ * Light theme mirrors every token so components never reference raw colors.
+ * See docs/DESIGN.md for the rationale behind each hue.
+ */
+:root {
+  /* Surfaces */
+  --bg: #0b1315;
+  --panel: #10191c;
+  --panel-2: #152225;
+  --panel-3: #1b2b2f;
+  --line: #1f3034;
+  --line-2: #2a3e43;
+  --overlay: rgba(11, 19, 21, 0.72);
+
+  /* Text */
+  --text: #d9e4e2;
+  --muted: #7e9295;
+  --faint: #4e6064;
+
+  /* Brand + semantic */
+  --accent: #f0704f; /* coral: the sun at the center of the orrery */
+  --active: #38d1b0; /* mint: something is happening */
+  --wait: #f2b84b; /* amber: needs you */
+  --err: #ee5d6e;
+  --idle: #5c6e71;
+
+  /* Tool families */
+  --t-read: #38d1b0;
+  --t-search: #5ba7f0;
+  --t-edit: #f0704f;
+  --t-shell: #f2b84b;
+  --t-web: #b98cf5;
+  --t-agent: #f0704f;
+  --t-think: #4e6064;
+  --t-other: #7e9295;
+
+  /* Agent types */
+  --ty-explore: #38d1b0;
+  --ty-plan: #5ba7f0;
+  --ty-gp: #f0704f;
+  --ty-review: #b98cf5;
+
+  --glow: rgba(56, 209, 176, 0.35);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--active);
+
+  /* Type */
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Density: 8px scale (dashboard) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --r-1: 6px;
+  --r-2: 8px;
+  --r-3: 12px;
+
+  /* Motion: critically damped by default; bounce only after momentum */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 360ms;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef3f2;
+    --panel: #ffffff;
+    --panel-2: #e9f0ef;
+    --panel-3: #dde7e5;
+    --line: #d3dddb;
+    --line-2: #bfcdca;
+    --overlay: rgba(238, 243, 242, 0.75);
+    --text: #14201f;
+    --muted: #5b6d6f;
+    --faint: #93a3a5;
+    --accent: #d85a3a;
+    --active: #149c82;
+    --wait: #b37a12;
+    --err: #c93f50;
+    --idle: #8a9a9c;
+    --t-read: #149c82;
+    --t-search: #2c7fd1;
+    --t-edit: #d85a3a;
+    --t-shell: #b37a12;
+    --t-web: #8a5bd6;
+    --t-agent: #d85a3a;
+    --t-think: #93a3a5;
+    --t-other: #5b6d6f;
+    --ty-explore: #149c82;
+    --ty-plan: #2c7fd1;
+    --ty-gp: #d85a3a;
+    --ty-review: #8a5bd6;
+    --glow: rgba(20, 156, 130, 0.25);
+    --shadow: 0 1px 2px rgba(20, 32, 31, 0.06), 0 8px 24px rgba(20, 32, 31, 0.06);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef3f2;
+  --panel: #ffffff;
+  --panel-2: #e9f0ef;
+  --panel-3: #dde7e5;
+  --line: #d3dddb;
+  --line-2: #bfcdca;
+  --overlay: rgba(238, 243, 242, 0.75);
+  --text: #14201f;
+  --muted: #5b6d6f;
+  --faint: #93a3a5;
+  --accent: #d85a3a;
+  --active: #149c82;
+  --wait: #b37a12;
+  --err: #c93f50;
+  --idle: #8a9a9c;
+  --t-read: #149c82;
+  --t-search: #2c7fd1;
+  --t-edit: #d85a3a;
+  --t-shell: #b37a12;
+  --t-web: #8a5bd6;
+  --t-agent: #d85a3a;
+  --t-think: #93a3a5;
+  --t-other: #5b6d6f;
+  --ty-explore: #149c82;
+  --ty-plan: #2c7fd1;
+  --ty-gp: #d85a3a;
+  --ty-review: #8a5bd6;
+  --glow: rgba(20, 156, 130, 0.25);
+  --shadow: 0 1px 2px rgba(20, 32, 31, 0.06), 0 8px 24px rgba(20, 32, 31, 0.06);
+  color-scheme: light;
+}

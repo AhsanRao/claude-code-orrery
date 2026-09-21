@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Orrery mark for UI chrome and README. Uses currentColor-free fills so it renders anywhere. -->
+  <circle cx="16" cy="16" r="13" fill="none" stroke="#2A3E43" stroke-width="1.5"/>
+  <circle cx="16" cy="16" r="4.5" fill="#F0704F"/>
+  <circle cx="27" cy="11" r="2.6" fill="#38D1B0"/>
+  <circle cx="7" cy="23" r="2.2" fill="#5BA7F0"/>
+  <circle cx="21" cy="28" r="1.8" fill="#B98CF5"/>
+</svg>

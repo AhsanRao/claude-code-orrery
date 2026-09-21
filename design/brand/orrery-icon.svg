@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Orrery app icon. A coral sun (the main thread) with three bodies in orbit (agents). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#152225"/>
+      <stop offset="1" stop-color="#0B1315"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#FFA07F"/>
+      <stop offset="0.55" stop-color="#F0704F"/>
+      <stop offset="1" stop-color="#C74E33"/>
+    </radialGradient>
+    <radialGradient id="sunglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F0704F" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#F0704F" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <clipPath id="squircle"><rect x="0" y="0" width="1024" height="1024" rx="228"/></clipPath>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <!-- faint vignette so the icon reads as a dark instrument, not a flat tile -->
+    <circle cx="512" cy="512" r="640" fill="none" stroke="#1F3034" stroke-width="2" opacity="0.6"/>
+    <!-- orbits -->
+    <g fill="none" stroke="#2A3E43" stroke-width="10" stroke-linecap="round">
+      <ellipse cx="512" cy="512" rx="400" ry="400"/>
+      <ellipse cx="512" cy="512" rx="270" ry="270"/>
+      <ellipse cx="512" cy="512" rx="150" ry="150" stroke="#38D1B0" stroke-opacity="0.35" stroke-dasharray="14 26"/>
+    </g>
+    <!-- sun glow -->
+    <circle cx="512" cy="512" r="230" fill="url(#sunglow)"/>
+    <!-- sun -->
+    <circle cx="512" cy="512" r="96" fill="url(#sun)"/>
+    <circle cx="482" cy="480" r="30" fill="#FFFFFF" opacity="0.18" filter="url(#soft)"/>
+    <!-- agents in orbit, each with a soft halo -->
+    <g>
+      <circle cx="838" cy="330" r="72" fill="#38D1B0" opacity="0.22" filter="url(#soft)"/>
+      <circle cx="838" cy="330" r="44" fill="#38D1B0"/>
+      <circle cx="826" cy="316" r="12" fill="#FFFFFF" opacity="0.35"/>
+    </g>
+    <g>
+      <circle cx="286" cy="660" r="56" fill="#5BA7F0" opacity="0.22" filter="url(#soft)"/>
+      <circle cx="286" cy="660" r="34" fill="#5BA7F0"/>
+      <circle cx="276" cy="650" r="9" fill="#FFFFFF" opacity="0.35"/>
+    </g>
+    <g>
+      <circle cx="636" cy="646" r="46" fill="#B98CF5" opacity="0.22" filter="url(#soft)"/>
+      <circle cx="636" cy="646" r="26" fill="#B98CF5"/>
+      <circle cx="629" cy="639" r="7" fill="#FFFFFF" opacity="0.35"/>
+    </g>
+  </g>
+</svg>
