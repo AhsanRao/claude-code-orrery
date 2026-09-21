@@ -4,6 +4,8 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-22
+
 ### Added
 
 - `orrery-core`: read-only engine that tails `~/.claude/sessions`, main transcripts and subagent transcripts and emits normalized events (`session-registry`, `tool-start`, `tool-end`, `agent-spawn`, `agent-result`, `usage`, …).
@@ -18,4 +20,5 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 - Pending agent placeholders (dotted) between spawn and transcript appearance.
 - Toast mute toggle in the top bar.
 
-[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/main...HEAD
+[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.1.0...master
+[0.1.0]: https://github.com/AhsanRao/claude-code-orrery/releases/tag/v0.1.0

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/store";
 import { MAIN, type Agent, type Session, type ToolCall } from "@/lib/types";
 import { agentColor, toolStyle } from "@/lib/tools";
-import { fmtDur, fmtMs, fmtTokens } from "@/lib/format";
+import { fmtDurShort, fmtMs, fmtTokensShort } from "@/lib/format";
 import { Icon } from "./Icons";
 
 const FEED_LIMIT = 40;
@@ -104,7 +104,9 @@ function Header({ s, a, now }: { s: Session; a: Agent; now: number }) {
         <div>
           <span className="k">Elapsed</span>
           <div className="v">
-            {fmtDur((a.endedAt ?? now) - (isMain ? (s.startedAt ?? a.startedAt) : a.startedAt))}
+            {fmtDurShort(
+              (a.endedAt ?? now) - (isMain ? (s.startedAt ?? a.startedAt) : a.startedAt),
+            )}
           </div>
         </div>
         <div>
@@ -117,7 +119,7 @@ function Header({ s, a, now }: { s: Session; a: Agent; now: number }) {
             className="v"
             title={`in ${a.tokens.inputTokens} · out ${a.tokens.outputTokens} · cache read ${a.tokens.cacheReadTokens}`}
           >
-            {fmtTokens(tokens)}
+            {fmtTokensShort(tokens)}
           </div>
         </div>
       </div>

@@ -11,12 +11,36 @@ export const fmtDur = (ms: number): string => {
   return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 };
 
+/** Top-bar style: exact with separators until it gets long, then 120K / 1.2M. */
 export const fmtTokens = (n: number): string =>
   n >= 1_000_000
-    ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 10_000
-      ? `${Math.round(n / 1000)}k`
+    ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+    : n >= 100_000
+      ? `${Math.round(n / 1000)}K`
       : n.toLocaleString();
+
+/** Tile style (≤ 5 chars): 0 · <1k · 2k · 14k · 120k · 1.2M. */
+export const fmtTokensShort = (n: number): string =>
+  n === 0
+    ? "0"
+    : n < 1000
+      ? "<1k"
+      : n >= 1_000_000
+        ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+        : n >= 10_000
+          ? `${Math.round(n / 1000)}k`
+          : `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+
+/** Tile style (≤ 5 chars): 42s · 14m · 1h05 · 2d3h. */
+export const fmtDurShort = (ms: number): string => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h${String(m % 60).padStart(2, "0")}`;
+  return `${Math.floor(h / 24)}d${h % 24}h`;
+};
 
 /** `/Users/me/dev/repo` → `~/dev/repo` when a home dir is known. */
 export const shortPath = (p: string | undefined, home?: string): string => {

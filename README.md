@@ -49,7 +49,7 @@ Details in [docs/ZERO_IMPACT.md](docs/ZERO_IMPACT.md).
 
 ## Install
 
-Prebuilt binaries will be attached to [GitHub releases](../../releases) once v0.1.0 ships. Until then, build from source (below).
+Download the latest bundle from [GitHub releases](../../releases) — macOS DMG, Windows MSI, Linux AppImage/deb are built for every `v*` tag. Bundles are unsigned for now: on macOS, right-click → Open the first time, or run `xattr -d com.apple.quarantine /Applications/Orrery.app`. No release yet? Build from source (below).
 
 ## Build from source
 
@@ -60,7 +60,7 @@ git clone https://github.com/AhsanRao/claude-code-orrery
 cd orrery
 pnpm install
 pnpm app:dev      # desktop app with hot reload
-pnpm app:build    # release bundle in src-tauri/target/release/bundle
+pnpm app:build    # release bundle in target/release/bundle (dmg/, macos/, …)
 ```
 
 ### Browser-only development

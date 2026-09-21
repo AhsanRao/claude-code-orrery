@@ -1,6 +1,6 @@
 # Orrery — Project Plan
 
-_Last updated: 2026-09-22. This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
+_Last updated: 2026-09-22 (v0.1.0). This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
 
 ## 1. Purpose
 
@@ -16,7 +16,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 | 4   | Fewest moving parts | Standard library and CSS before dependencies.                                |
 | 5   | Product quality     | Named, branded, documented, accessible, dark/light, reduced-motion aware.    |
 
-## 3. Current state (v0.1.0-alpha)
+## 3. Current state (v0.1.0)
 
 ### Existing features
 
@@ -68,13 +68,14 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 
 ### v0.1.0 — first release
 
-- [ ] **History picker**: list past sessions (`list_transcripts`), open one, replay via `load_history`, scrub the timeline.
-- [ ] **Waiting detection**: derive `waiting` from `Notification`-like signals in the transcript (permission prompts, `AskUserQuestion`) when the registry says `busy`.
-- [ ] **Pending agent placeholders** in the constellation (spawn seen, transcript not yet) with a dotted ring.
-- [ ] **Settings**: custom Claude home, replay budget, toast toggles; persisted with `tauri-plugin-store`.
-- [ ] **Windows/Linux pass**: title bar, fonts fallback, notify backend quirks; CI build matrix.
-- [ ] Release pipeline: signed macOS DMG, Windows MSI, Linux AppImage via GitHub Actions on tags.
-- [ ] Screenshots/GIF for README from the real app.
+- [x] **History picker**: rail lists past transcripts (title read from the file tail), click replays via `load_history`; ended sessions get a native range slider to scrub the 60 s window.
+- [x] **Waiting detection**: `AskUserQuestion` open on the main thread → `waiting`, even when the registry still says `busy`. Permission prompts are not in the transcript; they still rely on the registry.
+- [x] **Pending agent placeholders**: spawn seen, transcript not yet → dotted node that keeps its slot when the real id arrives.
+- [x] **Settings (minimal)**: toast mute toggle (localStorage). Custom Claude home = `CLAUDE_CONFIG_DIR`, same as Claude Code. Replay budget stays a `Config` default — add a UI when someone needs it.
+- [x] Release pipeline: `release.yml` builds macOS (universal), Windows and Linux bundles on `v*` tags into a draft release. Unsigned until certificates are added as repo secrets.
+- [x] macOS DMG verified locally (`pnpm app:build` → `target/release/bundle/dmg/Orrery_0.1.0_aarch64.dmg`).
+- [ ] **Windows/Linux pass**: CI compiles on all three; manual verification of title bar, fonts and notify quirks still owed.
+- [ ] Screenshots/GIF for README from the real app (needs screen-recording permission on the maintainer's machine).
 
 ### v0.2.0 — depth
 

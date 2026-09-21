@@ -23,3 +23,9 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+# Proc-macros and build scripts are host-side and must keep their symbols;
+# stripping them breaks `can't find crate for *_derive` on macOS.
+[profile.release.build-override]
+strip = false
+opt-level = 0
