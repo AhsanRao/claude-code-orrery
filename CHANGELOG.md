@@ -13,5 +13,9 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 - Demo mode when running in a plain browser.
 - Project docs: architecture, data sources, design system, zero-impact policy, project plan.
 - Project-scoped Claude Code skills and plugin configuration for contributors.
+- History: past transcripts listed in the rail with their titles; click to replay; timeline scrubber for ended sessions.
+- `waiting` status while the main thread has an `AskUserQuestion` open.
+- Pending agent placeholders (dotted) between spawn and transcript appearance.
+- Toast mute toggle in the top bar.
 
 [Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/main...HEAD

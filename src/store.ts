@@ -6,7 +6,7 @@
 import { create } from "zustand";
 import { getBridge } from "./lib/bridge";
 import { initialState, reduce } from "./lib/reducer";
-import { MAIN, type OrreryState } from "./lib/types";
+import { MAIN, type OrreryState, type TranscriptSummary } from "./lib/types";
 import { agentColor } from "./lib/tools";
 
 export interface Toast {
@@ -26,6 +26,10 @@ interface UiState {
   toasts: Toast[];
   /** Milliseconds; `Date.now()` sampled on a slow tick for elapsed labels. */
   now: number;
+  /** Past transcripts on disk (not yet loaded into `model`). */
+  history: TranscriptSummary[];
+  loadingHistory: string | null;
+  toastsEnabled: boolean;
 }
 
 interface Actions {
@@ -35,7 +39,18 @@ interface Actions {
   pushToast(t: Omit<Toast, "id">): void;
   dismissToast(id: number): void;
   connect(): Promise<void>;
+  openHistory(sessionId: string): Promise<void>;
+  setToastsEnabled(on: boolean): void;
 }
+
+const TOASTS_KEY = "orrery.toasts";
+const readToastsPref = (): boolean => {
+  try {
+    return localStorage.getItem(TOASTS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
 
 let toastSeq = 0;
 
@@ -47,6 +62,9 @@ export const useStore = create<UiState & Actions>((set, get) => ({
   selectedAgent: MAIN,
   toasts: [],
   now: Date.now(),
+  history: [],
+  loadingHistory: null,
+  toastsEnabled: readToastsPref(),
 
   apply(events) {
     const prev = get().model;
@@ -104,6 +122,7 @@ export const useStore = create<UiState & Actions>((set, get) => ({
     set({ selectedAgent: id });
   },
   pushToast(t) {
+    if (!get().toastsEnabled) return;
     const id = ++toastSeq;
     set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id }] }));
     window.setTimeout(() => get().dismissToast(id), 4200);
@@ -117,5 +136,28 @@ export const useStore = create<UiState & Actions>((set, get) => ({
     set({ mode: bridge.mode, claudeHome: home });
     bridge.subscribe((events) => get().apply(events));
     window.setInterval(() => set({ now: Date.now() }), 1000);
+    const refreshHistory = async () =>
+      set({ history: await bridge.listTranscripts().catch(() => []) });
+    await refreshHistory();
+    window.setInterval(refreshHistory, 30_000);
+  },
+  async openHistory(sessionId) {
+    if (get().model.sessions[sessionId]) return get().selectSession(sessionId);
+    set({ loadingHistory: sessionId });
+    try {
+      const bridge = await getBridge();
+      get().apply(await bridge.loadHistory(sessionId));
+      get().selectSession(sessionId);
+    } finally {
+      set({ loadingHistory: null });
+    }
+  },
+  setToastsEnabled(on) {
+    try {
+      localStorage.setItem(TOASTS_KEY, on ? "on" : "off");
+    } catch {
+      /* private mode: preference just won't persist */
+    }
+    set({ toastsEnabled: on, toasts: on ? get().toasts : [] });
   },
 }));

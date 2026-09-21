@@ -187,3 +187,34 @@ describe("reduce", () => {
     expect(orderedSessions(st).map((s) => s.id)).toEqual(["live", "old"]);
   });
 });
+
+describe("waiting detection", () => {
+  it("marks a live session waiting while AskUserQuestion is open", () => {
+    let st = reduce(initialState(), [
+      { kind: "session-registry", sessions: [{ sessionId: S, status: "busy" }] },
+      {
+        kind: "tool-start",
+        sessionId: S,
+        agentId: null,
+        ts: t(0),
+        toolUseId: "q",
+        tool: "AskUserQuestion",
+        summary: "",
+        input: {},
+      },
+    ]);
+    expect(st.sessions[S]?.status).toBe("waiting");
+    st = reduce(st, [
+      {
+        kind: "tool-end",
+        sessionId: S,
+        agentId: null,
+        ts: t(5),
+        toolUseId: "q",
+        ok: true,
+        outputChars: 1,
+      },
+    ]);
+    expect(st.sessions[S]?.status).toBe("busy");
+  });
+});

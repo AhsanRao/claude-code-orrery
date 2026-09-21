@@ -38,6 +38,7 @@ pub fn list_transcripts(home: &Path) -> Vec<TranscriptSummary> {
             out.push(TranscriptSummary {
                 session_id,
                 project_dir,
+                title: tail_title(&path),
                 transcript_path: path.to_string_lossy().into_owned(),
                 modified_at,
                 size_bytes: meta.len(),
@@ -46,6 +47,18 @@ pub fn list_transcripts(home: &Path) -> Vec<TranscriptSummary> {
     }
     out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
     out
+}
+
+/// Read the last `ai-title` record from the tail of a transcript, cheaply.
+/// Claude Code rewrites the title line often, so the newest is near the end.
+fn tail_title(path: &Path) -> Option<String> {
+    let mut tail = FileTail::from_start_bounded(path, 64 * 1024).ok()?;
+    let lines = tail.read_new_lines().ok()?;
+    lines.iter().rev().find_map(|line| {
+        let v: serde_json::Value = serde_json::from_str(line).ok()?;
+        (v.get("type")?.as_str()? == "ai-title")
+            .then(|| v.get("aiTitle")?.as_str().map(String::from))?
+    })
 }
 
 /// Find the main transcript for `session_id`, if it exists.
@@ -135,6 +148,7 @@ mod tests {
         let list = list_transcripts(home.path());
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].session_id, "sess-1");
+        assert_eq!(list[0].title.as_deref(), Some("T"));
 
         let events = load_history(home.path(), "sess-1", u64::MAX).unwrap();
         assert!(matches!(events[0], Event::SessionTitle { .. }));

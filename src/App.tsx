@@ -10,7 +10,9 @@ import { Onboarding } from "./components/Onboarding";
 
 export default function App() {
   const connect = useStore((s) => s.connect);
-  const hasSessions = useStore((s) => Object.keys(s.model.sessions).length > 0);
+  const hasSessions = useStore(
+    (s) => Object.keys(s.model.sessions).length > 0 || s.history.length > 0,
+  );
   const mode = useStore((s) => s.mode);
 
   useEffect(() => {

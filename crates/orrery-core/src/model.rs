@@ -46,6 +46,8 @@ pub struct TranscriptSummary {
     /// Unix milliseconds of the last write.
     pub modified_at: u64,
     pub size_bytes: u64,
+    /// Claude Code's AI title, if one was found near the end of the file.
+    pub title: Option<String>,
 }
 
 /// Token usage reported by the API for one assistant turn.

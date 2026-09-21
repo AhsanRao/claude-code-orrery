@@ -71,7 +71,13 @@ export function Timeline() {
   const session = useStore((s) =>
     s.selectedSession ? s.model.sessions[s.selectedSession] : undefined,
   );
-  const now = useFastNow(!!session);
+  const live = !!session?.live;
+  const clock = useFastNow(live);
+  // Ended sessions: the window is anchored where the session stopped and can be scrubbed.
+  const [scrub, setScrub] = useState<{ id: string; at: number } | null>(null);
+  const first = session?.calls[0]?.startedAt ?? session?.startedAt ?? 0;
+  const last = session?.lastActivity ?? 0;
+  const now = live ? clock : scrub && scrub.id === session?.id ? scrub.at : last;
   const w0 = now - WINDOW;
   const recent = session ? session.calls.filter((c) => (c.endedAt ?? now) >= w0) : [];
   const byAgent = new Map<string, ToolCall[]>();
@@ -92,7 +98,26 @@ export function Timeline() {
   return (
     <div className="panel timeline">
       <div className="ph">
-        Timeline <span className="hint">last 60 s · one lane per agent</span>
+        Timeline
+        {session && !live && last > first && (
+          <input
+            id="timeline-scrub"
+            className="scrub"
+            type="range"
+            min={first + WINDOW}
+            max={last}
+            step={1000}
+            value={now}
+            onChange={(e) => setScrub({ id: session.id, at: Number(e.target.value) })}
+            aria-label="Scrub timeline"
+            title={new Date(now).toLocaleTimeString()}
+          />
+        )}
+        <span className="hint">
+          {live
+            ? "last 60 s · one lane per agent"
+            : `60 s ending ${new Date(now).toLocaleTimeString()}`}
+        </span>
       </div>
       <div className="lanes">
         {session &&
@@ -111,7 +136,7 @@ export function Timeline() {
         <div className="ticks" aria-hidden="true">
           {TICKS.map((t) => (
             <span key={t} style={{ left: `${100 - (t / 60) * 100}%` }}>
-              {t === 0 ? "now" : `-${t}s`}
+              {t === 0 ? (live ? "now" : "end") : `-${t}s`}
             </span>
           ))}
         </div>

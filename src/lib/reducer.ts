@@ -188,6 +188,8 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
         state.callIndex[ev.toolUseId] = s.id;
         a.current = call;
         a.toolCount += 1;
+        // The registry says "busy" while Claude waits on a question; the transcript knows better.
+        if (a.id === MAIN && ev.tool === "AskUserQuestion" && s.live) s.status = "waiting";
         break;
       }
       case "tool-end": {
@@ -205,6 +207,8 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
         s.calls[idx] = done;
         const a = agent(s, done.agentId === MAIN ? null : done.agentId, "agent", at);
         if (a.current?.id === done.id) a.current = undefined;
+        if (a.id === MAIN && done.tool === "AskUserQuestion" && s.live)
+          s.status = statusFromLive(s.live.status);
         // The Agent tool returning means that subagent is finished.
         if (done.tool === "Agent" || done.tool === "Task") {
           for (const other of Object.values(s.agents)) {

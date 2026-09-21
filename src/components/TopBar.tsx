@@ -1,6 +1,7 @@
 import { useStore } from "@/store";
 import { fmtTokens } from "@/lib/format";
 import { recentCalls, runningAgents } from "@/lib/reducer";
+import { Icon } from "./Icons";
 
 function Stat({ label, value, live }: { label: string; value: string | number; live?: boolean }) {
   return (
@@ -15,6 +16,8 @@ export function TopBar() {
   const model = useStore((s) => s.model);
   const mode = useStore((s) => s.mode);
   const now = useStore((s) => s.now);
+  const toastsEnabled = useStore((s) => s.toastsEnabled);
+  const setToastsEnabled = useStore((s) => s.setToastsEnabled);
   const sessions = Object.values(model.sessions);
   const live = sessions.filter((s) => s.live).length;
   const agents = sessions.reduce((n, s) => n + runningAgents(s).length, 0);
@@ -61,6 +64,16 @@ export function TopBar() {
           : mode === "tauri"
             ? "passive · read-only"
             : "connecting…"}
+        <span className="sep" aria-hidden="true" />
+        <button
+          type="button"
+          aria-pressed={toastsEnabled}
+          onClick={() => setToastsEnabled(!toastsEnabled)}
+          title={toastsEnabled ? "Toasts on — click to mute" : "Toasts off — click to enable"}
+        >
+          <Icon name="bell" />
+          {toastsEnabled ? "toasts" : "muted"}
+        </button>
       </div>
     </header>
   );

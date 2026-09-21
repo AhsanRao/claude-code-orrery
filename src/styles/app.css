@@ -134,6 +134,26 @@ button {
   box-shadow: 0 0 0 3px var(--glow);
   animation: pulse 2s ease-in-out infinite;
 }
+.mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+.mode button[aria-pressed="true"] {
+  color: var(--text);
+}
+.mode button:hover {
+  background: var(--panel-2);
+}
+.mode .sep {
+  width: 1px;
+  height: 14px;
+  background: var(--line-2);
+}
 .mode.demo .dot {
   background: var(--wait);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--wait) 30%, transparent);
@@ -346,6 +366,19 @@ button {
   opacity: 0.6;
 }
 
+.sess.hist {
+  padding: 8px 12px;
+  opacity: 0.85;
+}
+.subhead {
+  padding: 10px 12px 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+}
+
 /* ---------- Constellation ---------- */
 .graph svg.stage {
   flex: 1;
@@ -460,6 +493,9 @@ button {
 }
 .node.flash .base {
   animation: flash 0.7s ease;
+}
+.node.pending .base {
+  stroke-dasharray: 4 6;
 }
 .node.enter {
   animation: pop 0.45s var(--ease) both;
@@ -853,6 +889,14 @@ button {
   font-size: 12px;
   text-align: center;
   padding: var(--s-4);
+}
+
+.scrub {
+  flex: 1;
+  min-width: 80px;
+  max-width: 320px;
+  accent-color: var(--accent);
+  margin: 0 8px;
 }
 
 /* ---------- Inspector ---------- */

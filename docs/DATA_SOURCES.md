@@ -34,6 +34,8 @@ One file per running Claude Code process; deleted on exit. Example:
 
 Event: `session-registry { sessions: LiveSession[] }` (full snapshot).
 
+The registry does not know about questions: while Claude waits on `AskUserQuestion` it still reports `busy`. The reducer overrides that to `waiting` from the transcript (open `AskUserQuestion` tool call on the main thread).
+
 ## 2. `HOME/projects/<project>/<sessionId>.jsonl` — main transcript
 
 `<project>` is the working directory with `/` replaced by `-`. One JSON object per line. Files named `*.orphaned-*` or `*.superseded-*` are ignored.

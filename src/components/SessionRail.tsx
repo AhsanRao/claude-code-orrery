@@ -1,7 +1,7 @@
 import { useStore } from "@/store";
 import { orderedSessions, recentCalls, runningAgents } from "@/lib/reducer";
 import { fmtDur, shortPath } from "@/lib/format";
-import { MAIN, type Session } from "@/lib/types";
+import { MAIN, type Session, type TranscriptSummary } from "@/lib/types";
 import { BotAvatar } from "./Bot";
 import { Icon } from "./Icons";
 
@@ -92,11 +92,37 @@ function SessionCard({ s, selected, seed }: { s: Session; selected: boolean; see
   );
 }
 
+function HistoryRow({ t }: { t: TranscriptSummary }) {
+  const open = useStore((st) => st.openHistory);
+  const loading = useStore((st) => st.loadingHistory === t.sessionId);
+  const project = t.projectDir.split("-").filter(Boolean).slice(-2).join("/");
+  return (
+    <li>
+      <button className="sess hist" onClick={() => void open(t.sessionId)} aria-busy={loading}>
+        <div className="row">
+          <span className="title">{t.title ?? t.sessionId.slice(0, 8)}</span>
+          {loading && <span className="spin" aria-label="loading" />}
+        </div>
+        <div className="cwd">
+          {project} ·{" "}
+          {new Date(t.modifiedAt).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+        </div>
+      </button>
+    </li>
+  );
+}
+
 export function SessionRail() {
   const model = useStore((s) => s.model);
   const selected = useStore((s) => s.selectedSession);
   const home = useStore((s) => s.claudeHome);
+  const historyAll = useStore((s) => s.history);
   const sessions = orderedSessions(model);
+  // ponytail: flat list of the 30 newest not already on screen; add search when someone has 300 sessions.
+  const history = historyAll.filter((t) => !model.sessions[t.sessionId]).slice(0, 30);
   return (
     <aside className="panel sessions" aria-label="Sessions">
       <div className="ph">
@@ -108,6 +134,10 @@ export function SessionRail() {
       <ul>
         {sessions.map((s, i) => (
           <SessionCard key={s.id} s={s} selected={s.id === selected} seed={i * 17 + s.id.length} />
+        ))}
+        {history.length > 0 && <li className="subhead">History</li>}
+        {history.map((t) => (
+          <HistoryRow key={t.sessionId} t={t} />
         ))}
       </ul>
     </aside>

@@ -22,6 +22,7 @@ export interface TranscriptSummary {
   transcriptPath: string;
   modifiedAt: number;
   sizeBytes: number;
+  title: string | null;
 }
 
 export interface Usage {

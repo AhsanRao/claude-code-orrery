@@ -136,6 +136,7 @@ function AgentNode({
   const cls = [
     "node",
     "enter",
+    agent.id.startsWith("pending:") && "pending",
     leaving && "leave",
     isMain && "root",
     agent.status === "running" && agent.current && "live",
@@ -268,12 +269,14 @@ export function Constellation() {
   const visible = useMemo(() => {
     if (!session) return [] as Agent[];
     return Object.values(session.agents)
-      .filter((a) => a.id !== MAIN && !a.id.startsWith("pending:"))
+      .filter((a) => a.id !== MAIN)
       .filter((a) => a.status === "running" || (a.endedAt ?? 0) > now - LINGER_MS)
       .sort((a, b) => a.startedAt - b.startedAt)
       .slice(0, SLOTS.length);
   }, [session, now]);
-  const slots = useSlots(visible.map((a) => a.id));
+  // Key by the spawn call so a placeholder keeps its slot when its transcript appears.
+  const slotKey = (a: Agent) => a.spawnToolUseId ?? a.id;
+  const slots = useSlots(visible.map(slotKey));
 
   // Transient effects: burst on spawn, particle flying home on completion, root flash.
   const prev = useRef(new Map<string, Agent["status"]>());
@@ -283,7 +286,7 @@ export function Constellation() {
   useEffect(() => {
     const seen = prev.current;
     for (const a of visible) {
-      const slot = slots.get(a.id);
+      const slot = slots.get(slotKey(a));
       if (slot === undefined) continue;
       const was = seen.get(a.id);
       if (!was) {
@@ -329,7 +332,7 @@ export function Constellation() {
           <>
             <g id="edges">
               {visible.map((a) => {
-                const slot = SLOTS[slots.get(a.id) ?? 0]!;
+                const slot = SLOTS[slots.get(slotKey(a)) ?? 0]!;
                 const live = a.status === "running";
                 return (
                   <g key={a.id}>
@@ -376,7 +379,7 @@ export function Constellation() {
               seed={1}
             />
             {visible.map((a, i) => {
-              const slot = SLOTS[slots.get(a.id) ?? 0]!;
+              const slot = SLOTS[slots.get(slotKey(a)) ?? 0]!;
               const leaving = a.status !== "running" && (a.endedAt ?? 0) < now - (LINGER_MS - 1000);
               return (
                 <AgentNode
