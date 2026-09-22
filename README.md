@@ -95,6 +95,8 @@ Claude Code ──writes──▶ ~/.claude/sessions/<pid>.json           who is
                  React UI — reducer → sessions / agents / tool calls → constellation, timeline, inspector
 ```
 
+Beyond the live picture, Orrery shows past sessions from disk, estimates cost from token usage against an editable price table, keeps a live counter in the menu bar, and sends one native notification when a session starts waiting on you.
+
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — modules and data flow
 - [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) — the exact files and record shapes Orrery understands
 - [docs/DESIGN.md](docs/DESIGN.md) — brand, color, type, motion

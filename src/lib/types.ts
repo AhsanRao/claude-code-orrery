@@ -123,6 +123,15 @@ export interface ToolCall {
   outputChars?: number;
 }
 
+/** A prompt or an assistant reply, kept for the transcript view. */
+export interface Message {
+  id: string;
+  agentId: string;
+  role: "user" | "assistant";
+  text: string;
+  at: number;
+}
+
 export interface Agent {
   id: string;
   sessionId: string;
@@ -160,6 +169,8 @@ export interface Session {
   agents: Record<string, Agent>;
   /** Bounded, oldest first. */
   calls: ToolCall[];
+  /** Bounded, oldest first. */
+  messages: Message[];
   tokens: Usage;
   lastPrompt?: string;
 }

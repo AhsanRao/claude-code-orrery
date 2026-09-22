@@ -8,6 +8,10 @@ import { getBridge } from "./lib/bridge";
 import { initialState, reduce } from "./lib/reducer";
 import { MAIN, type OrreryState, type TranscriptSummary } from "./lib/types";
 import { agentColor } from "./lib/tools";
+import { loadPrices, savePrices, type Price } from "./lib/cost";
+import { notifyWaiting } from "./lib/notify";
+import { setTrayTitle, traySummary } from "./lib/tray";
+import { runningAgents } from "./lib/reducer";
 
 export interface Toast {
   id: number;
@@ -30,6 +34,10 @@ interface UiState {
   history: TranscriptSummary[];
   loadingHistory: string | null;
   toastsEnabled: boolean;
+  /** Free-text filter over the session rail. */
+  query: string;
+  /** USD per million tokens, by model family. */
+  prices: Record<string, Price>;
 }
 
 interface Actions {
@@ -41,6 +49,8 @@ interface Actions {
   connect(): Promise<void>;
   openHistory(sessionId: string): Promise<void>;
   setToastsEnabled(on: boolean): void;
+  setQuery(q: string): void;
+  setPrice(model: string, price: Price): void;
 }
 
 const TOASTS_KEY = "orrery.toasts";
@@ -65,6 +75,8 @@ export const useStore = create<UiState & Actions>((set, get) => ({
   history: [],
   loadingHistory: null,
   toastsEnabled: readToastsPref(),
+  query: "",
+  prices: loadPrices(),
 
   apply(events) {
     const prev = get().model;
@@ -113,6 +125,20 @@ export const useStore = create<UiState & Actions>((set, get) => ({
       selectedSession = busy?.id ?? Object.keys(next.sessions)[0] ?? null;
       selectedAgent = MAIN;
     }
+    // Tell the OS when a session starts needing the user; nothing else nags.
+    for (const s of Object.values(next.sessions)) {
+      if (s.status === "waiting" && prev.sessions[s.id]?.status !== "waiting") {
+        void notifyWaiting(s.title ?? s.cwd ?? s.id, s.agents[MAIN]?.current?.summary);
+      }
+    }
+    const live = Object.values(next.sessions).filter((s) => s.live);
+    void setTrayTitle(
+      traySummary({
+        waiting: live.filter((s) => s.status === "waiting").length,
+        busy: live.filter((s) => s.status === "busy").length,
+        agents: live.reduce((n, s) => n + runningAgents(s).length, 0),
+      }),
+    );
     set({ model: next, selectedSession, selectedAgent });
   },
   selectSession(id) {
@@ -151,6 +177,14 @@ export const useStore = create<UiState & Actions>((set, get) => ({
     } finally {
       set({ loadingHistory: null });
     }
+  },
+  setQuery(q) {
+    set({ query: q });
+  },
+  setPrice(model, price) {
+    const prices = { ...get().prices, [model]: price };
+    savePrices(prices);
+    set({ prices });
   },
   setToastsEnabled(on) {
     try {

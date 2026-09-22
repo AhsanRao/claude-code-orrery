@@ -12,6 +12,7 @@ import {
   type Agent,
   type OrreryEvent,
   type OrreryState,
+  type Message,
   type Session,
   type SessionStatus,
   type ToolCall,
@@ -21,6 +22,8 @@ import { shortModel, toMs } from "./format";
 
 /** Calls kept per session; older ones are dropped. */
 export const MAX_CALLS = 600;
+/** Prompts and replies kept per session. */
+export const MAX_MESSAGES = 300;
 /** Diagnostics kept. */
 const MAX_DIAGNOSTICS = 50;
 
@@ -57,8 +60,15 @@ const newSession = (id: string, at: number): Session => ({
   lastActivity: at,
   agents: { [MAIN]: newAgent(id, MAIN, "main", at) },
   calls: [],
+  messages: [],
   tokens: emptyUsage(),
 });
+
+/** Append a message, dropping the oldest once the cap is reached. */
+const push = (s: Session, m: Message): void => {
+  s.messages.push(m);
+  if (s.messages.length > MAX_MESSAGES) s.messages.splice(0, s.messages.length - MAX_MESSAGES);
+};
 
 /** Map Claude Code's registry status onto ours. */
 const statusFromLive = (status: string | null | undefined): SessionStatus => {
@@ -96,7 +106,13 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
       state.sessions[id] = s;
       touched.add(id);
     } else if (!touched.has(id)) {
-      s = { ...s, agents: { ...s.agents }, calls: s.calls.slice(), tokens: { ...s.tokens } };
+      s = {
+        ...s,
+        agents: { ...s.agents },
+        calls: s.calls.slice(),
+        messages: s.messages.slice(),
+        tokens: { ...s.tokens },
+      };
       state.sessions[id] = s;
       touched.add(id);
     }
@@ -154,6 +170,13 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
         const at = toMs(ev.ts);
         const s = session(ev.sessionId, at);
         s.lastPrompt = ev.text;
+        push(s, {
+          id: `p:${ev.ts}:${s.messages.length}`,
+          agentId: MAIN,
+          role: "user",
+          text: ev.text,
+          at,
+        });
         s.startedAt ??= at;
         if (!s.live) s.status = "ended";
         break;
@@ -163,6 +186,13 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
         const s = session(ev.sessionId, at);
         const a = agent(s, ev.agentId, "agent", at);
         a.lastText = ev.text;
+        push(s, {
+          id: `a:${ev.ts}:${s.messages.length}`,
+          agentId: a.id,
+          role: "assistant",
+          text: ev.text,
+          at,
+        });
         if (ev.model) a.model = shortModel(ev.model);
         if (!ev.agentId && ev.model) s.model = shortModel(ev.model);
         break;
@@ -253,6 +283,7 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
           const a: Agent = { ...pending, id: ev.agentId, transcriptPath: ev.transcriptPath };
           s.agents[ev.agentId] = a;
           for (const c of s.calls) if (c.agentId === pending.id) c.agentId = ev.agentId;
+          for (const m of s.messages) if (m.agentId === pending.id) m.agentId = ev.agentId;
         } else {
           const a = agent(s, ev.agentId, "agent", Date.now());
           a.transcriptPath = ev.transcriptPath;
@@ -308,8 +339,37 @@ export const orderedSessions = (state: OrreryState): Session[] =>
     return rank(a) - rank(b) || b.lastActivity - a.lastActivity;
   });
 
+/** Depth from the main thread: 0 = main, 1 = its subagents, 2 = theirs. */
+export const agentDepth = (s: Session, id: string): number => {
+  let depth = 0;
+  let cur = s.agents[id];
+  while (cur && cur.parentId && depth < 8) {
+    cur = s.agents[cur.parentId];
+    depth += 1;
+  }
+  return depth;
+};
+
 export const runningAgents = (s: Session): Agent[] =>
   Object.values(s.agents).filter((a) => a.id !== MAIN && a.status === "running");
+
+/**
+ * Free-text filter over the rail. Bare words match title, path, branch and
+ * model; `status:waiting` (or `is:waiting`) narrows by state.
+ */
+export const matchesQuery = (s: Session, query: string): boolean => {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = [s.title, s.cwd, s.branch, s.model, s.live?.entrypoint, s.live?.kind, s.id]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return terms.every((term) => {
+    const [key, value] = term.split(":", 2);
+    if (value && (key === "status" || key === "is")) return s.status.startsWith(value);
+    return haystack.includes(term);
+  });
+};
 
 /** Tool calls started in the last `windowMs`, across all agents of a session. */
 export const recentCalls = (s: Session, windowMs: number, now = Date.now()): ToolCall[] =>

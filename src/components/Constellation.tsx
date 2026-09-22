@@ -1,11 +1,12 @@
 /**
- * The orrery itself: the session's main thread at the center, subagents in
- * orbit. Layout is a fixed ring of slots so nodes never jump; enter/exit use
- * critically damped springs, ambient life (blink, bob, glow) is CSS.
+ * The orrery itself: the session's main thread at the center, its subagents in
+ * orbit, and anything they spawn in a smaller orbit around them. Slots are
+ * fixed so nodes never jump; ambient life (blink, bob, glow) is CSS.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/store";
+import { agentDepth } from "@/lib/reducer";
 import { MAIN, type Agent, type Session } from "@/lib/types";
 import { agentColor, toolStyle } from "@/lib/tools";
 import { Bot } from "./Bot";
@@ -17,6 +18,9 @@ const CX = 400;
 const CY = 222;
 const R_ROOT = 42;
 const R_AGENT = 34;
+/** Agents spawned by a subagent sit closer in and draw smaller. */
+const R_CHILD = 22;
+const CHILD_DISTANCE = 74;
 /** How long a finished agent stays in orbit before drifting away. */
 const LINGER_MS = 8000;
 const SLOTS = [-90, -30, 30, 90, 150, 210].map((deg) => {
@@ -47,18 +51,65 @@ function useSlots(ids: string[]): Map<string, number> {
   /* eslint-enable react-hooks/refs */
 }
 
-function edgePath(slot: { x: number; y: number }): string {
-  const dx = slot.x - CX;
-  const dy = slot.y - CY;
-  const len = Math.hypot(dx, dy);
+interface Placed {
+  x: number;
+  y: number;
+  r: number;
+  /** Where this node's edge starts: its parent's node. */
+  from: { x: number; y: number; r: number };
+}
+
+/**
+ * Place every visible agent. Depth-1 agents take a fixed ring slot; deeper
+ * agents fan out from their own parent, so a subagent's subagents read as
+ * belonging to it rather than to the session.
+ */
+function layout(
+  agents: Agent[],
+  session: Session,
+  slots: Map<string, number>,
+  slotKey: (a: Agent) => string,
+): Map<string, Placed> {
+  const root = { x: CX, y: CY, r: R_ROOT };
+  const placed = new Map<string, Placed>();
+  const childIndex = new Map<string, number>();
+  for (const a of agents) {
+    const depth = agentDepth(session, a.id);
+    if (depth <= 1) {
+      const slot = SLOTS[slots.get(slotKey(a)) ?? 0]!;
+      placed.set(a.id, { x: slot.x, y: slot.y, r: R_AGENT, from: root });
+      continue;
+    }
+    const parent = (a.parentId && placed.get(a.parentId)) || { ...root, r: R_ROOT };
+    const n = childIndex.get(a.parentId ?? MAIN) ?? 0;
+    childIndex.set(a.parentId ?? MAIN, n + 1);
+    // Fan outward from the centre, alternating sides so two children don't stack.
+    const base = Math.atan2(parent.y - CY, parent.x - CX);
+    const angle = base + (n % 2 === 0 ? 1 : -1) * (0.55 + Math.floor(n / 2) * 0.5);
+    placed.set(a.id, {
+      x: parent.x + Math.cos(angle) * CHILD_DISTANCE,
+      y: parent.y + Math.sin(angle) * CHILD_DISTANCE,
+      r: R_CHILD,
+      from: parent,
+    });
+  }
+  return placed;
+}
+
+function edgePath(p: Placed): string {
+  const { from } = p;
+  const dx = p.x - from.x;
+  const dy = p.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  const mx = (CX + slot.x) / 2 - uy * 28;
-  const my = (CY + slot.y) / 2 + ux * 28;
-  const sx = CX + ux * (R_ROOT + 2);
-  const sy = CY + uy * (R_ROOT + 2);
-  const ex = slot.x - ux * (R_AGENT + 3);
-  const ey = slot.y - uy * (R_AGENT + 3);
+  const bow = Math.min(28, len / 5);
+  const mx = (from.x + p.x) / 2 - uy * bow;
+  const my = (from.y + p.y) / 2 + ux * bow;
+  const sx = from.x + ux * (from.r + 2);
+  const sy = from.y + uy * (from.r + 2);
+  const ex = p.x - ux * (p.r + 3);
+  const ey = p.y - uy * (p.r + 3);
   return `M${sx},${sy} Q${mx},${my} ${ex},${ey}`;
 }
 
@@ -121,6 +172,7 @@ function AgentNode({
   flash,
   seed,
   leaving = false,
+  radius,
 }: {
   agent: Agent;
   x: number;
@@ -130,9 +182,11 @@ function AgentNode({
   flash: boolean;
   seed: number;
   leaving?: boolean;
+  radius?: number;
 }) {
   const isMain = agent.id === MAIN;
-  const r = isMain ? R_ROOT : R_AGENT;
+  const r = radius ?? (isMain ? R_ROOT : R_AGENT);
+  const small = r <= R_CHILD;
   const cls = [
     "node",
     "enter",
@@ -172,14 +226,16 @@ function AgentNode({
             strokeDasharray={`${2 * Math.PI * r * 0.28} ${2 * Math.PI * r}`}
           />
         )}
-        <Bot scale={isMain ? 1.15 : 1} seed={seed} />
+        <Bot scale={isMain ? 1.15 : small ? 0.62 : 1} seed={seed} />
         <ToolBadge agent={agent} r={r} />
-        <text className="lbl" y={r + 22}>
+        <text className="lbl" y={r + 20} style={small ? { fontSize: 11 } : undefined}>
           {label}
         </text>
-        <text className="desc" y={r + 37}>
-          {desc.length > 34 ? `${desc.slice(0, 33)}…` : desc}
-        </text>
+        {!small && (
+          <text className="desc" y={r + 35}>
+            {desc.length > 34 ? `${desc.slice(0, 33)}…` : desc}
+          </text>
+        )}
         <Chip agent={agent} r={r} />
       </g>
     </g>
@@ -268,33 +324,46 @@ export function Constellation() {
 
   const visible = useMemo(() => {
     if (!session) return [] as Agent[];
-    return Object.values(session.agents)
+    const onScreen = Object.values(session.agents)
       .filter((a) => a.id !== MAIN)
       .filter((a) => a.status === "running" || (a.endedAt ?? 0) > now - LINGER_MS)
-      .sort((a, b) => a.startedAt - b.startedAt)
-      .slice(0, SLOTS.length);
+      .sort((a, b) => a.startedAt - b.startedAt);
+    // Only the ring is capped; nested agents hang off a parent that is already drawn.
+    const ring = onScreen.filter((a) => agentDepth(session, a.id) <= 1).slice(0, SLOTS.length);
+    const kept = new Set(ring.map((a) => a.id));
+    const nested = onScreen.filter((a) => !kept.has(a.id) && a.parentId && kept.has(a.parentId));
+    // Parents before children so layout can hang one off the other.
+    return [...ring, ...nested];
   }, [session, now]);
   // Key by the spawn call so a placeholder keeps its slot when its transcript appears.
   const slotKey = (a: Agent) => a.spawnToolUseId ?? a.id;
-  const slots = useSlots(visible.map(slotKey));
+  const ringKeys = useMemo(
+    () => (session ? visible.filter((a) => agentDepth(session, a.id) <= 1).map(slotKey) : []),
+    [visible, session],
+  );
+  const slots = useSlots(ringKeys);
+  const places = useMemo(
+    () => (session ? layout(visible, session, slots, slotKey) : new Map<string, Placed>()),
+    [visible, session, slots],
+  );
 
   // Transient effects: burst on spawn, particle flying home on completion, root flash.
   const prev = useRef(new Map<string, Agent["status"]>());
-  const [bursts, setBursts] = useState<{ id: string; slot: number; color: string }[]>([]);
-  const [flights, setFlights] = useState<{ id: string; slot: number }[]>([]);
+  const [bursts, setBursts] = useState<{ id: string; x: number; y: number; color: string }[]>([]);
+  const [flights, setFlights] = useState<{ id: string }[]>([]);
   const [flash, setFlash] = useState(false);
   useEffect(() => {
     const seen = prev.current;
     for (const a of visible) {
-      const slot = slots.get(slotKey(a));
-      if (slot === undefined) continue;
+      const place = places.get(a.id);
+      if (!place) continue;
       const was = seen.get(a.id);
       if (!was) {
-        setBursts((b) => [...b, { id: a.id, slot, color: agentColor(a.type) }]);
+        setBursts((b) => [...b, { id: a.id, x: place.x, y: place.y, color: agentColor(a.type) }]);
         setFlash(true);
         window.setTimeout(() => setBursts((b) => b.filter((x) => x.id !== a.id)), 800);
       } else if (was === "running" && a.status !== "running") {
-        setFlights((f) => [...f, { id: a.id, slot }]);
+        setFlights((f) => [...f, { id: a.id }]);
         window.setTimeout(() => {
           setFlights((f) => f.filter((x) => x.id !== a.id));
           setFlash(true);
@@ -303,7 +372,7 @@ export function Constellation() {
       seen.set(a.id, a.status);
     }
     for (const id of [...seen.keys()]) if (!visible.some((a) => a.id === id)) seen.delete(id);
-  }, [visible, slots]);
+  }, [visible, places]);
   useEffect(() => {
     if (!flash) return;
     const t = window.setTimeout(() => setFlash(false), 700);
@@ -332,14 +401,15 @@ export function Constellation() {
           <>
             <g id="edges">
               {visible.map((a) => {
-                const slot = SLOTS[slots.get(slotKey(a)) ?? 0]!;
+                const place = places.get(a.id);
+                if (!place) return null;
                 const live = a.status === "running";
                 return (
                   <g key={a.id}>
                     <path
                       id={`edge-${a.id}`}
                       className={`edge${live ? " live" : " done"}`}
-                      d={edgePath(slot)}
+                      d={edgePath(place)}
                     />
                     {live && (
                       <circle className="particle" r="3.2">
@@ -366,7 +436,7 @@ export function Constellation() {
               ))}
             </g>
             {bursts.map((b) => (
-              <Burst key={b.id} x={SLOTS[b.slot]!.x} y={SLOTS[b.slot]!.y} color={b.color} />
+              <Burst key={b.id} x={b.x} y={b.y} color={b.color} />
             ))}
             <AgentNode
               key={MAIN}
@@ -379,14 +449,16 @@ export function Constellation() {
               seed={1}
             />
             {visible.map((a, i) => {
-              const slot = SLOTS[slots.get(slotKey(a)) ?? 0]!;
+              const place = places.get(a.id);
+              if (!place) return null;
               const leaving = a.status !== "running" && (a.endedAt ?? 0) < now - (LINGER_MS - 1000);
               return (
                 <AgentNode
                   key={a.id}
                   agent={a}
-                  x={slot.x}
-                  y={slot.y}
+                  x={place.x}
+                  y={place.y}
+                  radius={place.r}
                   selected={selectedAgent === a.id}
                   onSelect={() => selectAgent(a.id)}
                   flash={false}

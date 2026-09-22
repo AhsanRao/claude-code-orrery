@@ -19,7 +19,7 @@ Read-only desktop observer for Claude Code sessions. Tauri 2 + Rust core + React
 
 - `crates/orrery-core/src/{paths,tailer,parser,registry,history,engine}.rs`
 - `src-tauri/src/lib.rs` commands + event forwarding (`orrery://events`)
-- `src/lib/{types,reducer,bridge,demo}.ts`, `src/store.ts`, `src/components/*`
+- `src/lib/{types,reducer,bridge,demo,cost,notify,tray}.ts`, `src/store.ts`, `src/components/*`
 - `docs/PROJECT_PLAN.md` is the roadmap; update it when scope changes.
 
 ## Design

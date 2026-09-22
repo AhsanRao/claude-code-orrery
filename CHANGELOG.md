@@ -4,6 +4,18 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-23
+
+### Added
+
+- Background sessions: `~/.claude/jobs/<id>/state.json` is read alongside the live registry, so `claude --bg` and `claude agents` work show up. Finished jobs fall through to history.
+- Nested agents: an agent spawned by an agent hangs off its parent in a smaller orbit, with its own edge; depth is unlimited in the model and drawn two levels deep.
+- Cost estimates from token usage, per session and per agent, with an editable price table (USD per million tokens, stored per viewer).
+- Transcript tab in the inspector: prompts and replies for the selected agent, with obvious secrets blanked before display.
+- Session filter: free text over title, path, branch and model, plus `status:waiting`.
+- Menu-bar tray: live counter (`2 waiting`, `3 agents`), click or menu to reopen the window, quit from the tray.
+- Native notification when a session starts waiting on you.
+
 ## [0.1.0] - 2026-09-22
 
 ### Added
@@ -20,5 +32,6 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 - Pending agent placeholders (dotted) between spawn and transcript appearance.
 - Toast mute toggle in the top bar.
 
-[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.1.0...master
+[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.2.0...master
+[0.2.0]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AhsanRao/claude-code-orrery/releases/tag/v0.1.0

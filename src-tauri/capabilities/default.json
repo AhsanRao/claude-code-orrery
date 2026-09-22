@@ -1,7 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Orrery needs only its own commands, event listening and opening links in the browser.",
+  "description": "Orrery needs its own commands, event listening, notifications when a session is waiting, and opening links in the browser.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:event:default", "core:window:default", "opener:default"]
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "core:tray:default",
+    "opener:default",
+    "notification:default"
+  ]
 }

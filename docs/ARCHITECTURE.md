@@ -13,7 +13,7 @@ Orrery has three layers. Data flows one way; the only "commands" go back for on-
 │   paths     classify a path → Registry | MainTranscript | AgentTranscript │
 │   tailer    FileTail: remember offset, read appended bytes, split lines │
 │   parser    JSONL line → Vec<Event>   (pure, lenient)                   │
-│   registry  sessions/*.json → Vec<LiveSession>                          │
+│   registry  sessions/*.json + jobs/*/state.json → Vec<LiveSession>     │
 │   history   list transcripts, replay one session on demand              │
 │   engine    watcher thread: coalesce → follow → parse → sink(Vec<Event>)│
 └──────────────┬────────────────────────────────────────────────────────┘
@@ -60,7 +60,7 @@ Orrery has three layers. Data flows one way; the only "commands" go back for on-
 - `agent-transcript` renames the oldest pending placeholder to the real agent id.
 - `agent-result` (or the `Agent` tool's `tool-end`) closes the agent.
 
-**Constellation.** Fixed ring of six slots. A render-time cache maps agent id → slot so nodes never jump when neighbours leave. Finished agents linger 8 s then fade. Transient effects (burst, return particle, root flash) are local component state keyed on status transitions.
+**Constellation.** Fixed ring of six slots for depth-1 agents; deeper agents fan out around their own parent at a smaller radius, so a subagent's subagents read as belonging to it. A render-time cache maps agent id → slot so nodes never jump when neighbours leave. Finished agents linger 8 s then fade. Transient effects (burst, return particle, root flash) are local component state keyed on status transitions.
 
 **Animation policy.** Ambient life (blink, bob, glow, dash) is CSS keyframes; enter/exit are CSS with a critically damped-feeling curve; particles are SMIL `animateMotion` along the edge path. Everything respects `prefers-reduced-motion`.
 

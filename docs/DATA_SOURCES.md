@@ -36,6 +36,21 @@ Event: `session-registry { sessions: LiveSession[] }` (full snapshot).
 
 The registry does not know about questions: while Claude waits on `AskUserQuestion` it still reports `busy`. The reducer overrides that to `waiting` from the transcript (open `AskUserQuestion` tool call on the main thread).
 
+## 1b. `HOME/jobs/<id>/state.json` — background sessions
+
+Written by the supervisor behind `claude --bg` and `claude agents`. Read leniently; only these fields are used:
+
+| Field                                   | Used for                                               |
+| --------------------------------------- | ------------------------------------------------------ |
+| `sessionId` (or `id`)                   | key; joins to the transcript                           |
+| `state`                                 | `working` / `blocked` / `done` / `failed` / `stopped`  |
+| `status`                                | `busy` / `waiting` / `idle` while the process is alive |
+| `cwd`, `name`, `createdAt`, `updatedAt` | rail card                                              |
+
+`state` and `status` are folded into the same vocabulary as `sessions/*.json`; `done`, `failed` and `stopped` jobs are dropped from the live list so they appear as history instead. Sessions listed in both places are counted once.
+
+`claude agents --json` is the documented interface and is deliberately **not** used: shelling out on every change would cost a process spawn per event, which the zero-impact policy rules out.
+
 ## 2. `HOME/projects/<project>/<sessionId>.jsonl` — main transcript
 
 `<project>` is the working directory with `/` replaced by `-`. One JSON object per line. Files named `*.orphaned-*` or `*.superseded-*` are ignored.

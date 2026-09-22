@@ -18,7 +18,7 @@ pub fn claude_home() -> PathBuf {
 /// What a path under `~/.claude` represents.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileKind {
-    /// `sessions/<pid>.json` — one file per running process.
+    /// `sessions/<pid>.json` or `jobs/<id>/state.json` — who is running now.
     Registry,
     /// `projects/<project>/<session>.jsonl` — main-thread transcript.
     MainTranscript {
@@ -48,6 +48,11 @@ pub fn classify(home: &Path, path: &Path) -> Option<FileKind> {
                 return None;
             }
             Some(FileKind::Registry)
+        }
+        "jobs" => {
+            let _id = parts.next()?;
+            (parts.next().as_deref() == Some("state.json") && parts.next().is_none())
+                .then_some(FileKind::Registry)
         }
         "projects" => {
             let project_dir = parts.next()?;

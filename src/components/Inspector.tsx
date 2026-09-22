@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "@/store";
-import { MAIN, type Agent, type Session, type ToolCall } from "@/lib/types";
+import { MAIN, type Agent, type Message, type Session, type ToolCall } from "@/lib/types";
+import { estimateCost, fmtCost } from "@/lib/cost";
 import { agentColor, toolStyle } from "@/lib/tools";
 import { fmtDurShort, fmtMs, fmtTokensShort } from "@/lib/format";
 import { Icon } from "./Icons";
@@ -29,6 +30,30 @@ function FeedItem({ c }: { c: ToolCall }) {
         {c.summary}
       </span>
       <span className="td">{dur}</span>
+    </li>
+  );
+}
+
+/**
+ * Obvious secrets, blanked before anything is drawn. This is a courtesy for
+ * screen-sharing, not a security control: the transcript on disk is unchanged
+ * and a determined secret will still slip through.
+ */
+const SECRET =
+  /\b(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{12,}|eyJ[A-Za-z0-9._-]{20,})/g;
+const LABELLED =
+  /((?:api[_-]?key|secret|token|password|passwd|authorization)\W{0,3}\s*["']?)([^\s"']{6,})/gi;
+
+// Labelled values first: blanking them afterwards would re-match the marker.
+export const redact = (text: string): string =>
+  text.replace(LABELLED, (_m, label: string) => `${label}«redacted»`).replace(SECRET, "«redacted»");
+
+function MessageItem({ m }: { m: Message }) {
+  const mine = m.role === "user";
+  return (
+    <li className={`msg ${m.role}`}>
+      <span className="who">{mine ? "You" : "Claude"}</span>
+      <p>{redact(m.text)}</p>
     </li>
   );
 }
@@ -83,6 +108,7 @@ function NowRow({ agent }: { agent: Agent }) {
 }
 
 function Header({ s, a, now }: { s: Session; a: Agent; now: number }) {
+  const prices = useStore((st) => st.prices);
   const isMain = a.id === MAIN;
   const tokens = a.tokens.inputTokens + a.tokens.outputTokens;
   return (
@@ -122,6 +148,12 @@ function Header({ s, a, now }: { s: Session; a: Agent; now: number }) {
             {fmtTokensShort(tokens)}
           </div>
         </div>
+        <div>
+          <span className="k">Cost</span>
+          <div className="v" title="Estimate from token counts and the price table — not a bill">
+            ~{fmtCost(estimateCost(a.tokens, a.model ?? s.model, prices))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -134,6 +166,7 @@ export function Inspector() {
   const selectedAgent = useStore((s) => s.selectedAgent);
   const now = useStore((s) => s.now);
   const agent = session?.agents[selectedAgent] ?? session?.agents[MAIN];
+  const [tab, setTab] = useState<"tools" | "transcript">("tools");
   const feed =
     session && agent
       ? session.calls
@@ -141,23 +174,54 @@ export function Inspector() {
           .slice(-FEED_LIMIT)
           .reverse()
       : [];
+  // Main thread keeps the user's prompts; a subagent only has its own replies.
+  const transcript =
+    session && agent
+      ? session.messages
+          .filter((m) => m.agentId === agent.id || (agent.id === MAIN && m.role === "user"))
+          .slice(-FEED_LIMIT)
+          .reverse()
+      : [];
 
   return (
     <aside className="panel inspector" aria-label="Inspector">
       <div className="ph">
-        Inspector{" "}
+        Inspector
+        {session && agent && (
+          <div className="tabs" role="tablist" aria-label="Inspector view">
+            <button role="tab" aria-selected={tab === "tools"} onClick={() => setTab("tools")}>
+              Tools
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === "transcript"}
+              onClick={() => setTab("transcript")}
+            >
+              Transcript
+            </button>
+          </div>
+        )}
         <span className="hint">{agent ? (agent.id === MAIN ? "main thread" : agent.id) : ""}</span>
       </div>
       {session && agent ? (
         <>
           <Header s={session} a={agent} now={now} />
           <NowRow agent={agent} />
-          <ul className="feed">
-            {feed.map((c) => (
-              <FeedItem key={c.id} c={c} />
-            ))}
-            {feed.length === 0 && <li className="empty">no tool calls yet</li>}
-          </ul>
+          {tab === "tools" ? (
+            <ul className="feed">
+              {feed.map((c) => (
+                <FeedItem key={c.id} c={c} />
+              ))}
+              {feed.length === 0 && <li className="empty">no tool calls yet</li>}
+            </ul>
+          ) : (
+            <ul className="feed transcript">
+              {transcript.map((m) => (
+                <MessageItem key={m.id} m={m} />
+              ))}
+              {transcript.length === 0 && <li className="empty">nothing said yet</li>}
+            </ul>
+          )}
         </>
       ) : (
         <div className="empty">select a session</div>

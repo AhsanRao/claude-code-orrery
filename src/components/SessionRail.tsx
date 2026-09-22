@@ -1,5 +1,5 @@
 import { useStore } from "@/store";
-import { orderedSessions, recentCalls, runningAgents } from "@/lib/reducer";
+import { matchesQuery, orderedSessions, recentCalls, runningAgents } from "@/lib/reducer";
 import { fmtDur, shortPath } from "@/lib/format";
 import { MAIN, type Session, type TranscriptSummary } from "@/lib/types";
 import { BotAvatar } from "./Bot";
@@ -120,7 +120,9 @@ export function SessionRail() {
   const selected = useStore((s) => s.selectedSession);
   const home = useStore((s) => s.claudeHome);
   const historyAll = useStore((s) => s.history);
-  const sessions = orderedSessions(model);
+  const query = useStore((s) => s.query);
+  const setQuery = useStore((s) => s.setQuery);
+  const sessions = orderedSessions(model).filter((s) => matchesQuery(s, query));
   // ponytail: flat list of the 30 newest not already on screen; add search when someone has 300 sessions.
   const history = historyAll.filter((t) => !model.sessions[t.sessionId]).slice(0, 30);
   return (
@@ -131,10 +133,24 @@ export function SessionRail() {
           {home ? `${home.replace(/^.*\/(\.claude)$/, "~/$1")}/sessions` : ""}
         </span>
       </div>
+      <div className="search">
+        <Icon name="search" />
+        <input
+          id="session-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter — path, branch, model, status:waiting"
+          aria-label="Filter sessions"
+        />
+      </div>
       <ul>
         {sessions.map((s, i) => (
           <SessionCard key={s.id} s={s} selected={s.id === selected} seed={i * 17 + s.id.length} />
         ))}
+        {sessions.length === 0 && history.length === 0 && (
+          <li className="empty">nothing matches “{query}”</li>
+        )}
         {history.length > 0 && <li className="subhead">History</li>}
         {history.map((t) => (
           <HistoryRow key={t.sessionId} t={t} />

@@ -1,6 +1,6 @@
 {
   "name": "orrery",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A live orrery for your Claude Code sessions \u2014 see every session, agent and tool call as it happens.",
   "license": "MIT",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-notification": "^2.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"

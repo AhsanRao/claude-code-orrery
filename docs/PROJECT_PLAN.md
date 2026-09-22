@@ -1,6 +1,6 @@
 # Orrery — Project Plan
 
-_Last updated: 2026-09-22 (v0.1.0). This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
+_Last updated: 2026-09-23 (v0.2.0). This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
 
 ## 1. Purpose
 
@@ -16,7 +16,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 | 4   | Fewest moving parts | Standard library and CSS before dependencies.                                |
 | 5   | Product quality     | Named, branded, documented, accessible, dark/light, reduced-motion aware.    |
 
-## 3. Current state (v0.1.0)
+## 3. Current state (v0.2.0)
 
 ### Existing features
 
@@ -30,6 +30,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - [x] Session registry reader (`sessions/<pid>.json`) with change detection.
 - [x] Watcher: FSEvents/inotify via `notify`, 16 ms coalescing, 1 s sweep as safety net, canonical-path handling on macOS.
 - [x] History API: list transcripts, replay one session with its subagents.
+- [x] Background sessions: `jobs/<id>/state.json` read and merged into the registry; finished jobs dropped so they read as history.
 - [x] Headless `tail` example.
 - [x] 24 unit/integration tests including an end-to-end watcher test.
 
@@ -47,7 +48,8 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - [x] Constellation: main thread + up to 6 agents in stable orbit slots, edges with flowing particles, spawn burst, result flight home, root flash, bot characters with expressions, animated tool badges, scenes for waiting/idle/ended sessions.
 - [x] Timeline: one lane per agent, bars by tool family, running/error styling, sliding 60 s window.
 - [x] Inspector: identity, model, elapsed, tool count, tokens, "now running" with live ms, tool feed with animated icons.
-- [x] Toasts for spawn / result / edits (fresh events only, never during replay).
+- [x] Toasts for spawn / result / edits (fresh events only, never during replay), with a mute toggle.
+- [x] Nested agents drawn around their parent; cost estimates with an editable price table; transcript tab with redaction; session filter; tray counter; native "needs you" notification.
 - [x] Onboarding empty state; demo mode in plain browsers.
 - [x] Dark + light themes, `prefers-reduced-motion`, `prefers-reduced-transparency`, `prefers-contrast`, keyboard focus rings, ARIA labels.
 
@@ -63,6 +65,9 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - Sessions not in the registry are followed from the end of their transcript; their history is loaded only on demand (`load_history` is exposed but the picker UI is not built yet).
 - Background jobs (`~/.claude/jobs`) are not read yet.
 - Windows title bar is default (overlay style is macOS-only).
+- Cost is an estimate by model _family_; the transcript does not record the account's tier or discounts.
+- Redaction in the transcript view is a courtesy for screen-sharing, not a security control.
+- Only two levels of agents are drawn; deeper ones stay in the model and the inspector.
 
 ## 4. To-do (ordered)
 
@@ -79,13 +84,13 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 
 ### v0.2.0 — depth
 
-- [ ] Background sessions from `~/.claude/jobs/<id>/state.json` + `claude agents --json` (on demand only, never on the hot path).
-- [ ] Nested agents: draw agent→agent edges (`parentAgentId`), depth-aware orbit layout.
-- [ ] Cost estimates per model from token usage (user-editable price table).
-- [ ] Prompt/answer transcript view in the inspector (read-only, redaction of obvious secrets).
-- [ ] Session search and filters (by cwd, branch, model, status).
-- [ ] Menu-bar / tray mode: compact live counters, click to open.
-- [ ] Notifications (native) when a session starts waiting on you.
+- [x] Background sessions from `~/.claude/jobs/<id>/state.json`, merged into the live registry and watched like `sessions/`. `claude agents --json` stays unused: it would cost a process spawn per change.
+- [x] Nested agents: `parentAgentId` drives both the model (`agentDepth`) and the layout — children orbit their own parent with their own edge.
+- [x] Cost estimates per model family from token usage, with a price table the user can edit in the top bar (stored per viewer).
+- [x] Prompt/answer transcript view in the inspector, with obvious secrets blanked before display.
+- [x] Session search and filters (free text over title/path/branch/model, plus `status:`).
+- [x] Menu-bar / tray mode: live counter, click to reopen, quit from the tray menu.
+- [x] Notifications (native) when a session starts waiting on you.
 
 ### v0.3.0 — optional precision mode
 

@@ -17,7 +17,7 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use crate::model::{Event, LiveSession};
 use crate::parser::{parse_line, LineContext, ParserState};
 use crate::paths::{classify, FileKind};
-use crate::registry::read_registry;
+use crate::registry::{read_jobs, read_registry};
 use crate::tailer::FileTail;
 
 /// Receives batches of events. Called from the engine thread.
@@ -124,6 +124,7 @@ fn run(mut config: Config, sink: EventSink, stop: Arc<AtomicBool>) -> Result<(),
     }
     let home = config.claude_home.clone();
     let sessions_dir = home.join("sessions");
+    let jobs_dir = home.join("jobs");
     let projects_dir = home.join("projects");
 
     let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
@@ -134,7 +135,7 @@ fn run(mut config: Config, sink: EventSink, stop: Arc<AtomicBool>) -> Result<(),
         notify::Config::default(),
     )?;
     // Both directories are created lazily by Claude Code; watch what exists.
-    for dir in [&sessions_dir, &projects_dir] {
+    for dir in [&sessions_dir, &jobs_dir, &projects_dir] {
         if dir.is_dir() {
             watcher.watch(dir, RecursiveMode::Recursive)?;
         }
@@ -196,9 +197,16 @@ impl Runtime {
         }
     }
 
-    /// Re-read `~/.claude/sessions`; emit only when something changed.
+    /// Re-read the live-session directories; emit only when something changed.
     fn refresh_registry(&mut self, force: bool) {
-        let sessions = read_registry(&self.config.claude_home.join("sessions"));
+        let mut sessions = read_registry(&self.config.claude_home.join("sessions"));
+        // Background jobs the foreground registry doesn't know about.
+        let known: HashSet<&str> = sessions.iter().map(|s| s.session_id.as_str()).collect();
+        let extra: Vec<_> = read_jobs(&self.config.claude_home.join("jobs"))
+            .into_iter()
+            .filter(|j| !known.contains(j.session_id.as_str()))
+            .collect();
+        sessions.extend(extra);
         if force || sessions != self.last_registry {
             self.live = sessions.iter().map(|s| s.session_id.clone()).collect();
             self.last_registry = sessions.clone();

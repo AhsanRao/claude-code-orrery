@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { initialState, orderedSessions, reduce, runningAgents } from "./reducer";
+import {
+  agentDepth,
+  initialState,
+  matchesQuery,
+  orderedSessions,
+  reduce,
+  runningAgents,
+} from "./reducer";
 import { MAIN, type OrreryEvent } from "./types";
 
 const S = "sess-1";
@@ -216,5 +223,83 @@ describe("waiting detection", () => {
       },
     ]);
     expect(st.sessions[S]?.status).toBe("busy");
+  });
+});
+
+describe("nesting and filtering", () => {
+  it("tracks depth through an agent that spawns an agent", () => {
+    const st = reduce(initialState(), [
+      {
+        kind: "agent-spawn",
+        sessionId: S,
+        parentAgentId: null,
+        ts: t(0),
+        toolUseId: "s1",
+        agentType: "Plan",
+        description: "plan",
+        promptPreview: "",
+      },
+      { kind: "agent-transcript", sessionId: S, agentId: "agent-1", transcriptPath: "/1" },
+      {
+        kind: "agent-spawn",
+        sessionId: S,
+        parentAgentId: "agent-1",
+        ts: t(1),
+        toolUseId: "s2",
+        agentType: "Explore",
+        description: "look",
+        promptPreview: "",
+      },
+      { kind: "agent-transcript", sessionId: S, agentId: "agent-2", transcriptPath: "/2" },
+    ]);
+    const sess = st.sessions[S]!;
+    expect(sess.agents["agent-2"]?.parentId).toBe("agent-1");
+    expect(agentDepth(sess, MAIN)).toBe(0);
+    expect(agentDepth(sess, "agent-1")).toBe(1);
+    expect(agentDepth(sess, "agent-2")).toBe(2);
+  });
+
+  it("keeps prompts and replies for the transcript view", () => {
+    const st = reduce(initialState(), [
+      { kind: "prompt", sessionId: S, ts: t(0), text: "do the thing" },
+      {
+        kind: "assistant-text",
+        sessionId: S,
+        agentId: "agent-1",
+        ts: t(1),
+        text: "done",
+        model: "claude-opus-5",
+      },
+    ]);
+    const msgs = st.sessions[S]!.messages;
+    expect(msgs.map((m) => [m.role, m.agentId, m.text])).toEqual([
+      ["user", MAIN, "do the thing"],
+      ["assistant", "agent-1", "done"],
+    ]);
+  });
+
+  it("filters the rail by text and by status:", () => {
+    const st = reduce(initialState(), [
+      {
+        kind: "session-registry",
+        sessions: [{ sessionId: "a", status: "waiting", cwd: "/dev/ocr" }],
+      },
+      {
+        kind: "session-meta",
+        sessionId: "a",
+        transcriptPath: "/p",
+        cwd: "/dev/ocr",
+        gitBranch: "fix/retry",
+        version: null,
+      },
+      { kind: "session-title", sessionId: "a", title: "OCR retries" },
+    ]);
+    const s = st.sessions["a"]!;
+    expect(matchesQuery(s, "")).toBe(true);
+    expect(matchesQuery(s, "ocr")).toBe(true);
+    expect(matchesQuery(s, "fix/retry")).toBe(true);
+    expect(matchesQuery(s, "status:waiting")).toBe(true);
+    expect(matchesQuery(s, "status:busy")).toBe(false);
+    expect(matchesQuery(s, "ocr keycloak")).toBe(false);
   });
 });

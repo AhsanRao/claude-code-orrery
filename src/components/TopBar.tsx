@@ -1,7 +1,56 @@
 import { useStore } from "@/store";
 import { fmtTokens } from "@/lib/format";
+import { estimateCost, fmtCost, type Price } from "@/lib/cost";
 import { recentCalls, runningAgents } from "@/lib/reducer";
 import { Icon } from "./Icons";
+import { useState } from "react";
+
+/** Cost tile that opens the editable price table. */
+function CostStat({ usd }: { usd: number }) {
+  const prices = useStore((s) => s.prices);
+  const setPrice = useStore((s) => s.setPrice);
+  const [open, setOpen] = useState(false);
+  const field = (model: string, key: keyof Price, label: string) => (
+    <label key={`${model}-${key}`}>
+      <span>{label}</span>
+      <input
+        id={`price-${model}-${key}`}
+        type="number"
+        min="0"
+        step="0.1"
+        value={prices[model]?.[key] ?? 0}
+        onChange={(e) => setPrice(model, { ...prices[model]!, [key]: Number(e.target.value) || 0 })}
+      />
+    </label>
+  );
+  return (
+    <div className="stat cost">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        title="Estimate from token counts — click to edit the price table"
+      >
+        <span className="k">Cost · live</span>
+        <span className="v">~{fmtCost(usd)}</span>
+      </button>
+      {open && (
+        <div className="prices" role="dialog" aria-label="Price table">
+          <p>USD per million tokens. Estimates only — your plan may differ.</p>
+          {Object.keys(prices).map((model) => (
+            <div className="prow" key={model}>
+              <b>{model}</b>
+              {field(model, "input", "in")}
+              {field(model, "output", "out")}
+              {field(model, "cacheRead", "cache r")}
+              {field(model, "cacheWrite", "cache w")}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Stat({ label, value, live }: { label: string; value: string | number; live?: boolean }) {
   return (
@@ -16,6 +65,7 @@ export function TopBar() {
   const model = useStore((s) => s.model);
   const mode = useStore((s) => s.mode);
   const now = useStore((s) => s.now);
+  const prices = useStore((s) => s.prices);
   const toastsEnabled = useStore((s) => s.toastsEnabled);
   const setToastsEnabled = useStore((s) => s.setToastsEnabled);
   const sessions = Object.values(model.sessions);
@@ -25,9 +75,9 @@ export function TopBar() {
     (n, s) => n + recentCalls(s, 60_000, now).filter((c) => c.tool !== "Agent").length,
     0,
   );
-  const tokens = sessions
-    .filter((s) => s.live)
-    .reduce((n, s) => n + s.tokens.outputTokens + s.tokens.inputTokens, 0);
+  const liveSessions = sessions.filter((s) => s.live);
+  const tokens = liveSessions.reduce((n, s) => n + s.tokens.outputTokens + s.tokens.inputTokens, 0);
+  const cost = liveSessions.reduce((n, s) => n + estimateCost(s.tokens, s.model, prices), 0);
 
   return (
     <header className="top" data-tauri-drag-region>
@@ -49,6 +99,7 @@ export function TopBar() {
         <Stat label="Agents running" value={agents} live={agents > 0} />
         <Stat label="Tools / min" value={tpm} />
         <Stat label="Tokens · live" value={fmtTokens(tokens)} />
+        <CostStat usd={cost} />
       </div>
       <div
         className={`mode ${mode}`}
