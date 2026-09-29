@@ -67,6 +67,8 @@ export function TopBar() {
   const now = useStore((s) => s.now);
   const prices = useStore((s) => s.prices);
   const toastsEnabled = useStore((s) => s.toastsEnabled);
+  const precision = useStore((s) => s.precision);
+  const openSettings = useStore((s) => s.openSettings);
   const setToastsEnabled = useStore((s) => s.setToastsEnabled);
   const sessions = Object.values(model.sessions);
   const live = sessions.filter((s) => s.live).length;
@@ -113,8 +115,15 @@ export function TopBar() {
         {mode === "demo"
           ? "demo · simulated"
           : mode === "tauri"
-            ? "passive · read-only"
+            ? precision?.installed
+              ? "precision · hooks on"
+              : "passive · read-only"
             : "connecting…"}
+        <span className="sep" aria-hidden="true" />
+        <button type="button" onClick={() => openSettings(true)} title="Settings">
+          <Icon name="sliders" />
+          settings
+        </button>
         <span className="sep" aria-hidden="true" />
         <button
           type="button"

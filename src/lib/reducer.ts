@@ -139,6 +139,8 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
           const s = session(live.sessionId, live.updatedAt ?? now);
           s.live = live;
           s.status = statusFromLive(live.status);
+          if (s.needsAttention && s.status === "busy") s.needsAttention = undefined;
+          if (s.needsAttention) s.status = "waiting";
           s.cwd ??= live.cwd ?? undefined;
           s.startedAt ??= live.startedAt ?? undefined;
           if (!s.title && live.name) s.title = live.name;
@@ -314,6 +316,64 @@ export function reduce(prev: OrreryState, events: OrreryEvent[]): OrreryState {
         if (ev.model) {
           a.model = shortModel(ev.model);
           if (!ev.agentId) s.model = shortModel(ev.model);
+        }
+        break;
+      }
+      case "hook": {
+        const at = Date.now();
+        const s = session(ev.sessionId, at);
+        switch (ev.event) {
+          case "SubagentStart": {
+            if (!ev.agentId) break;
+            // Exact identity: adopt the placeholder this hook belongs to,
+            // preferring one whose type matches, instead of guessing FIFO.
+            if (s.agents[ev.agentId]) break;
+            const pending = Object.values(s.agents)
+              .filter((a) => a.id.startsWith("pending:") && a.status === "running")
+              .sort((x, y) => x.startedAt - y.startedAt);
+            const match = pending.find((a) => a.type === ev.agentType) ?? pending[0];
+            if (match) {
+              delete s.agents[match.id];
+              s.agents[ev.agentId] = { ...match, id: ev.agentId };
+              for (const c of s.calls) if (c.agentId === match.id) c.agentId = ev.agentId;
+              for (const m of s.messages) if (m.agentId === match.id) m.agentId = ev.agentId;
+            } else {
+              const a = agent(s, ev.agentId, ev.agentType ?? "agent", at);
+              a.type = ev.agentType ?? a.type;
+            }
+            break;
+          }
+          case "SubagentStop": {
+            if (!ev.agentId || !s.agents[ev.agentId]) break;
+            const a = agent(s, ev.agentId, ev.agentType ?? "agent", at);
+            if (a.status === "running") {
+              a.status = "done";
+              a.endedAt = at;
+              a.current = undefined;
+            }
+            break;
+          }
+          case "Notification": {
+            s.needsAttention = ev.message ?? "Claude needs you";
+            if (s.live) s.status = "waiting";
+            break;
+          }
+          case "Stop": {
+            // The turn ended: nothing is running, whatever the registry lags on.
+            s.needsAttention = undefined;
+            for (const a of Object.values(s.agents)) {
+              if (a.id !== MAIN && a.status === "running") {
+                const done = agent(s, a.id, a.type, at);
+                done.status = "done";
+                done.endedAt = at;
+                done.current = undefined;
+              }
+            }
+            const main = agent(s, null, "main", at);
+            main.current = undefined;
+            if (s.live && s.status === "busy") s.status = "idle";
+            break;
+          }
         }
         break;
       }

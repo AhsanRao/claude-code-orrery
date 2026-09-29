@@ -4,6 +4,18 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-23
+
+### Added
+
+- Precision mode (opt-in): four `async: true` command hooks report exact agent ids, subagent stops, end of turn and notification text. Installed from the settings dialog after showing the real diff of `~/.claude/settings.json`, with a backup taken first and every unrelated setting preserved.
+- Settings dialog, reachable from the top bar or the `#settings` deep link.
+- Hook payloads resolve agent placeholders exactly (by id and type) instead of matching in order, close running agents when a turn stops, and surface the permission question's text.
+
+### Changed
+
+- The mode chip reads `precision · hooks on` while the hooks are installed.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added
@@ -32,6 +44,7 @@ All notable changes to Orrery are documented here. The format follows [Keep a Ch
 - Pending agent placeholders (dotted) between spawn and transcript appearance.
 - Toast mute toggle in the top bar.
 
-[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.2.0...master
+[Unreleased]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.3.0...master
+[0.3.0]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AhsanRao/claude-code-orrery/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AhsanRao/claude-code-orrery/releases/tag/v0.1.0

@@ -303,3 +303,97 @@ describe("nesting and filtering", () => {
     expect(matchesQuery(s, "ocr keycloak")).toBe(false);
   });
 });
+
+describe("precision-mode hooks", () => {
+  const hook = (event: string, extra: Record<string, unknown> = {}): OrreryEvent => ({
+    kind: "hook",
+    event,
+    sessionId: S,
+    agentId: null,
+    agentType: null,
+    cwd: null,
+    message: null,
+    ...extra,
+  });
+
+  it("resolves a placeholder by exact id and type instead of order", () => {
+    let st = reduce(initialState(), [
+      {
+        kind: "agent-spawn",
+        sessionId: S,
+        parentAgentId: null,
+        ts: t(0),
+        toolUseId: "s1",
+        agentType: "Explore",
+        description: "look",
+        promptPreview: "",
+      },
+      {
+        kind: "agent-spawn",
+        sessionId: S,
+        parentAgentId: null,
+        ts: t(0),
+        toolUseId: "s2",
+        agentType: "Plan",
+        description: "plan",
+        promptPreview: "",
+      },
+    ]);
+    st = reduce(st, [hook("SubagentStart", { agentId: "agent-plan", agentType: "Plan" })]);
+    const agents = st.sessions[S]!.agents;
+    expect(agents["agent-plan"]?.description).toBe("plan");
+    expect(Object.keys(agents)).toContain("pending:s1");
+
+    st = reduce(st, [hook("SubagentStop", { agentId: "agent-plan", agentType: "Plan" })]);
+    expect(st.sessions[S]?.agents["agent-plan"]?.status).toBe("done");
+  });
+
+  it("marks the session as needing attention, and clears it when work resumes", () => {
+    let st = reduce(initialState(), [
+      { kind: "session-registry", sessions: [{ sessionId: S, status: "busy" }] },
+      hook("Notification", { message: "Claude needs permission to run npm" }),
+    ]);
+    expect(st.sessions[S]?.status).toBe("waiting");
+    expect(st.sessions[S]?.needsAttention).toBe("Claude needs permission to run npm");
+    // A registry snapshot alone must not clear it...
+    st = reduce(st, [
+      { kind: "session-registry", sessions: [{ sessionId: S, status: "waiting" }] },
+    ]);
+    expect(st.sessions[S]?.status).toBe("waiting");
+    // ...but the next busy heartbeat does.
+    st = reduce(st, [{ kind: "session-registry", sessions: [{ sessionId: S, status: "busy" }] }]);
+    expect(st.sessions[S]?.needsAttention).toBeUndefined();
+  });
+
+  it("closes every running agent when the turn stops", () => {
+    let st = reduce(initialState(), [
+      { kind: "session-registry", sessions: [{ sessionId: S, status: "busy" }] },
+      {
+        kind: "agent-spawn",
+        sessionId: S,
+        parentAgentId: null,
+        ts: t(0),
+        toolUseId: "s1",
+        agentType: "Explore",
+        description: "look",
+        promptPreview: "",
+      },
+      { kind: "agent-transcript", sessionId: S, agentId: "agent-1", transcriptPath: "/1" },
+      {
+        kind: "tool-start",
+        sessionId: S,
+        agentId: null,
+        ts: t(0),
+        toolUseId: "t1",
+        tool: "Bash",
+        summary: "ls",
+        input: {},
+      },
+    ]);
+    st = reduce(st, [hook("Stop", { message: "done" })]);
+    const sess = st.sessions[S]!;
+    expect(sess.agents["agent-1"]?.status).toBe("done");
+    expect(sess.agents[MAIN]?.current).toBeUndefined();
+    expect(sess.status).toBe("idle");
+  });
+});

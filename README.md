@@ -33,6 +33,8 @@ Orrery is **read-only and passive**:
 - Nothing is ever written under `~/.claude`.
 - If Orrery crashes, nothing happens to your sessions.
 
+One optional exception: [precision mode](docs/PRECISION_MODE.md) installs four `async: true` hooks so agents are identified exactly. It is off until you turn it on, shows the diff of your settings file first, and keeps a backup.
+
 Details in [docs/ZERO_IMPACT.md](docs/ZERO_IMPACT.md).
 
 ## Works with
@@ -100,6 +102,7 @@ Beyond the live picture, Orrery shows past sessions from disk, estimates cost fr
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — modules and data flow
 - [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) — the exact files and record shapes Orrery understands
 - [docs/DESIGN.md](docs/DESIGN.md) — brand, color, type, motion
+- [docs/PRECISION_MODE.md](docs/PRECISION_MODE.md) — the opt-in hooks: what they buy, what they cost
 - [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) — what exists, what's next, what's possible
 
 ## Project layout

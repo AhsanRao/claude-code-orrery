@@ -1,6 +1,6 @@
 # Orrery — Project Plan
 
-_Last updated: 2026-09-23 (v0.2.0). This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
+_Last updated: 2026-09-23 (v0.3.0). This is the living roadmap. Edit it when scope changes; the CHANGELOG records what shipped._
 
 ## 1. Purpose
 
@@ -16,7 +16,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 | 4   | Fewest moving parts | Standard library and CSS before dependencies.                                |
 | 5   | Product quality     | Named, branded, documented, accessible, dark/light, reduced-motion aware.    |
 
-## 3. Current state (v0.2.0)
+## 3. Current state (v0.3.0)
 
 ### Existing features
 
@@ -31,6 +31,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - [x] Watcher: FSEvents/inotify via `notify`, 16 ms coalescing, 1 s sweep as safety net, canonical-path handling on macOS.
 - [x] History API: list transcripts, replay one session with its subagents.
 - [x] Background sessions: `jobs/<id>/state.json` read and merged into the registry; finished jobs dropped so they read as history.
+- [x] Precision mode: hook install/uninstall/preview on `settings.json`, payload parsing, and sink tailing (`hooks.rs`).
 - [x] Headless `tail` example.
 - [x] 24 unit/integration tests including an end-to-end watcher test.
 
@@ -49,6 +50,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - [x] Timeline: one lane per agent, bars by tool family, running/error styling, sliding 60 s window.
 - [x] Inspector: identity, model, elapsed, tool count, tokens, "now running" with live ms, tool feed with animated icons.
 - [x] Toasts for spawn / result / edits (fresh events only, never during replay), with a mute toggle.
+- [x] Settings dialog with precision mode (diff, backup, install/uninstall) and a `#settings` deep link.
 - [x] Nested agents drawn around their parent; cost estimates with an editable price table; transcript tab with redaction; session filter; tray counter; native "needs you" notification.
 - [x] Onboarding empty state; demo mode in plain browsers.
 - [x] Dark + light themes, `prefers-reduced-motion`, `prefers-reduced-transparency`, `prefers-contrast`, keyboard focus rings, ARIA labels.
@@ -68,6 +70,7 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 - Cost is an estimate by model _family_; the transcript does not record the account's tier or discounts.
 - Redaction in the transcript view is a courtesy for screen-sharing, not a security control.
 - Only two levels of agents are drawn; deeper ones stay in the model and the inspector.
+- Precision mode is POSIX-only; hook payloads carry no timestamp, so Orrery stamps them on receipt.
 
 ## 4. To-do (ordered)
 
@@ -94,8 +97,9 @@ Give Claude Code users a live, animated picture of what their sessions are doing
 
 ### v0.3.0 — optional precision mode
 
-- [ ] Opt-in `async: true` command hooks for `SubagentStart/Stop`, `Stop`, `Notification` delivering exact agent ids and end-of-turn signals. Off by default; the settings screen explains the trade-off (one process spawn per event). Never HTTP hooks (they block Claude).
-- [ ] Hook installer/uninstaller that only touches `~/.claude/settings.json` with explicit user confirmation and a visible diff.
+- [x] Opt-in `async: true` command hooks for `SubagentStart`, `SubagentStop`, `Stop` and `Notification`. Off by default; the settings dialog explains the trade-off (one short-lived shell per event). HTTP hooks are never used — they block Claude.
+- [x] Hook installer/uninstaller that touches only `~/.claude/settings.json`, after showing the real diff, with a backup and byte-for-byte preservation of every unrelated key.
+- [ ] Windows support for precision mode (the hook is a POSIX one-liner today).
 
 ## 5. Future ideas (unscheduled)
 

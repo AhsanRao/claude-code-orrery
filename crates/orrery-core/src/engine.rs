@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 
+use crate::hooks::parse_payload;
 use crate::model::{Event, LiveSession};
 use crate::parser::{parse_line, LineContext, ParserState};
 use crate::paths::{classify, FileKind};
@@ -34,6 +35,8 @@ pub struct Config {
     pub debounce: Duration,
     /// Fallback sweep (registry + followed files) when no notifications arrive.
     pub registry_poll: Duration,
+    /// Precision mode: file the installed hooks append to. `None` disables it.
+    pub hook_sink: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -43,6 +46,7 @@ impl Default for Config {
             max_history_bytes: 32 * 1024 * 1024,
             debounce: Duration::from_millis(16),
             registry_poll: Duration::from_secs(1),
+            hook_sink: None,
         }
     }
 }
@@ -101,6 +105,16 @@ impl Drop for Engine {
     }
 }
 
+/// Open the hook sink, truncating whatever a previous run left behind.
+fn rt_hook_tail(config: &Config) -> Option<FileTail> {
+    let path = config.hook_sink.clone()?;
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(&path, b"");
+    FileTail::from_end(&path).ok()
+}
+
 /// A transcript we are following.
 struct Followed {
     tail: FileTail,
@@ -111,6 +125,7 @@ struct Followed {
 struct Runtime {
     config: Config,
     sink: EventSink,
+    hook_tail: Option<FileTail>,
     followed: HashMap<PathBuf, Followed>,
     live: HashSet<String>,
     last_registry: Vec<LiveSession>,
@@ -140,10 +155,20 @@ fn run(mut config: Config, sink: EventSink, stop: Arc<AtomicBool>) -> Result<(),
             watcher.watch(dir, RecursiveMode::Recursive)?;
         }
     }
+    // The hook sink lives outside the Claude home, so it needs its own watch.
+    if let Some(parent) = config.hook_sink.as_ref().and_then(|p| p.parent()) {
+        if parent.is_dir() {
+            let _ = watcher.watch(parent, RecursiveMode::NonRecursive);
+        }
+    }
 
+    // Precision mode, when installed: start from an empty file so a previous
+    // run's payloads are not replayed. Orrery owns this file.
+    let hook_tail = rt_hook_tail(&config);
     let mut rt = Runtime {
         config,
         sink,
+        hook_tail,
         followed: HashMap::new(),
         live: HashSet::new(),
         last_registry: Vec::new(),
@@ -179,11 +204,13 @@ fn run(mut config: Config, sink: EventSink, stop: Arc<AtomicBool>) -> Result<(),
         if !pending.is_empty() {
             rt.process(&home, std::mem::take(&mut pending));
         }
+        rt.drain_hooks();
         // Safety net: notifications can be dropped under load, so sweep
         // everything we follow on a slow timer. Stat-only when nothing changed.
         if last_poll.elapsed() >= rt.config.registry_poll {
             rt.refresh_registry(false);
             rt.sweep(&home);
+            rt.drain_hooks();
             last_poll = Instant::now();
         }
     }
@@ -248,6 +275,18 @@ impl Runtime {
         for path in paths {
             self.follow(&home, &path, false);
         }
+    }
+
+    /// Read anything the installed hooks appended since the last check.
+    fn drain_hooks(&mut self) {
+        let Some(tail) = self.hook_tail.as_mut() else {
+            return;
+        };
+        let Ok(lines) = tail.read_new_lines() else {
+            return;
+        };
+        let events: Vec<Event> = lines.iter().filter_map(|l| parse_payload(l)).collect();
+        self.emit(events);
     }
 
     /// Drain every followed file. Cheap: one `stat` per file unless it grew.
@@ -407,6 +446,52 @@ mod tests {
                 "events did not arrive: {:?}",
                 received.lock().unwrap()
             );
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        engine.stop();
+    }
+
+    /// Precision mode: a line appended to the sink becomes a `Hook` event.
+    #[test]
+    fn reads_hook_payloads_from_the_sink() {
+        let home = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(home.path().join("sessions")).unwrap();
+        std::fs::create_dir_all(home.path().join("projects")).unwrap();
+        let sink = home.path().join("hooks.jsonl");
+
+        let received: Arc<Mutex<Vec<Event>>> = Arc::new(Mutex::new(Vec::new()));
+        let store = Arc::clone(&received);
+        let mut engine = Engine::start(
+            Config {
+                claude_home: home.path().to_path_buf(),
+                hook_sink: Some(sink.clone()),
+                registry_poll: Duration::from_millis(150),
+                ..Config::default()
+            },
+            Arc::new(move |evs| store.lock().unwrap().extend(evs)),
+        )
+        .unwrap();
+
+        std::thread::sleep(Duration::from_millis(300));
+        {
+            use std::io::Write;
+            let mut f = std::fs::OpenOptions::new()
+                .append(true)
+                .open(&sink)
+                .unwrap();
+            writeln!(f, r#"{{"hook_event_name":"SubagentStart","session_id":"s1","agent_id":"7","agent_type":"Plan"}}"#).unwrap();
+        }
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let got = received.lock().unwrap();
+            if got
+                .iter()
+                .any(|e| matches!(e, Event::Hook { agent_id: Some(a), .. } if a == "agent-7"))
+            {
+                break;
+            }
+            drop(got);
+            assert!(Instant::now() < deadline, "hook event never arrived");
             std::thread::sleep(Duration::from_millis(50));
         }
         engine.stop();

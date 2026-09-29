@@ -6,6 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 
+use orrery_core::hooks::{self, Status as HookStatus};
 use orrery_core::{Config, Engine, Event, LiveSession, TranscriptSummary};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -48,6 +49,45 @@ fn load_history(session_id: String, max_bytes: Option<u64>) -> Result<Vec<Event>
     .map_err(|e| e.to_string())
 }
 
+/// Where Claude Code's user settings live, and where our hooks append.
+fn hook_paths(app: &AppHandle) -> (std::path::PathBuf, std::path::PathBuf) {
+    let settings = orrery_core::paths::claude_home().join("settings.json");
+    let data = app
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir().join("orrery"));
+    (settings, hooks::default_sink(&data))
+}
+
+/// Is precision mode installed, and what exactly would change?
+#[tauri::command]
+fn precision_status(app: AppHandle) -> Result<HookStatus, String> {
+    let (settings, sink) = hook_paths(&app);
+    hooks::status(&settings, &sink).map_err(|e| e.to_string())
+}
+
+/// The settings file before and after, so the user can read the diff first.
+#[tauri::command]
+fn precision_preview(app: AppHandle, install: bool) -> Result<[String; 2], String> {
+    let (settings, sink) = hook_paths(&app);
+    let (before, after) = hooks::preview(&settings, &sink, install).map_err(|e| e.to_string())?;
+    Ok([before, after])
+}
+
+/// Write the change the user just confirmed, then restart the engine so it
+/// starts (or stops) following the sink.
+#[tauri::command]
+fn precision_set(
+    app: AppHandle,
+    state: State<'_, EngineState>,
+    install: bool,
+) -> Result<HookStatus, String> {
+    let (settings, sink) = hook_paths(&app);
+    let status = hooks::set_installed(&settings, &sink, install).map_err(|e| e.to_string())?;
+    start_engine(app, state)?;
+    Ok(status)
+}
+
 /// Set the menu-bar text beside the tray icon (macOS/Windows show it; on
 /// Linux it lands in the tooltip). The UI owns the counting, so it owns the
 /// string; an empty string clears it.
@@ -81,7 +121,17 @@ fn start_engine(app: AppHandle, state: State<'_, EngineState>) -> Result<(), Str
         // Emit failures only happen while the window is closing; nothing to do.
         let _ = handle.emit(EVENT_CHANNEL, &events);
     });
-    let engine = Engine::start(Config::default(), sink).map_err(|e| e.to_string())?;
+    let (settings, sink_path) = hook_paths(&app);
+    // Follow the sink only while the hooks are actually installed.
+    let hook_sink = hooks::status(&settings, &sink_path)
+        .ok()
+        .filter(|s| !s.events.is_empty())
+        .map(|_| sink_path);
+    let config = Config {
+        hook_sink,
+        ..Config::default()
+    };
+    let engine = Engine::start(config, sink).map_err(|e| e.to_string())?;
     *state.0.lock().map_err(|e| e.to_string())? = Some(engine);
     Ok(())
 }
@@ -98,7 +148,10 @@ pub fn run() {
             list_transcripts,
             load_history,
             start_engine,
-            set_tray_title
+            set_tray_title,
+            precision_status,
+            precision_preview,
+            precision_set
         ])
         .setup(|app| {
             let show = MenuItem::with_id(app, "show", "Open Orrery", true, None::<&str>)?;

@@ -99,7 +99,26 @@ export type OrreryEvent =
       model: string | null;
       usage: Usage;
     }
+  | {
+      kind: "hook";
+      event: string;
+      sessionId: string;
+      agentId: string | null;
+      agentType: string | null;
+      cwd: string | null;
+      message: string | null;
+    }
   | { kind: "diagnostic"; level: string; message: string };
+
+/** Precision-mode state, mirrored from `orrery_core::hooks::Status`. */
+export interface HookStatus {
+  installed: boolean;
+  events: string[];
+  settingsPath: string;
+  sinkPath: string;
+  command: string | null;
+  supported: boolean;
+}
 
 /* ---------- Reduced (UI) model ---------- */
 
@@ -171,6 +190,8 @@ export interface Session {
   calls: ToolCall[];
   /** Bounded, oldest first. */
   messages: Message[];
+  /** Last notification text from a precision-mode hook, if any. */
+  needsAttention?: string;
   tokens: Usage;
   lastPrompt?: string;
 }

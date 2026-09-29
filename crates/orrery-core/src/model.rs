@@ -163,6 +163,19 @@ pub enum Event {
         usage: Usage,
     },
 
+    /// A payload from an installed precision-mode hook. Carries facts the
+    /// transcript cannot: exact agent identity, and end-of-turn signals.
+    Hook {
+        /// `SubagentStart`, `SubagentStop`, `Stop`, `Notification`.
+        event: String,
+        session_id: String,
+        agent_id: Option<String>,
+        agent_type: Option<String>,
+        cwd: Option<String>,
+        /// Notification text, or the last assistant message on `Stop`.
+        message: Option<String>,
+    },
+
     /// Engine diagnostics (watcher started, file skipped, parse warning...).
     Diagnostic { level: String, message: String },
 }

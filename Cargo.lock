@@ -2520,7 +2520,7 @@ dependencies = [
 
 [[package]]
 name = "orrery"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "orrery-core",
  "serde",
@@ -2533,7 +2533,7 @@ dependencies = [
 
 [[package]]
 name = "orrery-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "dirs",
  "notify",

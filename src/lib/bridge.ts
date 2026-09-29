@@ -4,7 +4,7 @@
  * demo simulator so the UI can be developed and reviewed without Claude Code.
  */
 
-import type { LiveSession, OrreryEvent, TranscriptSummary } from "./types";
+import type { HookStatus, LiveSession, OrreryEvent, TranscriptSummary } from "./types";
 import { startDemo } from "./demo";
 
 export type EventListener = (events: OrreryEvent[]) => void;
@@ -17,7 +17,20 @@ export interface Bridge {
   liveSessions(): Promise<LiveSession[]>;
   listTranscripts(): Promise<TranscriptSummary[]>;
   loadHistory(sessionId: string): Promise<OrreryEvent[]>;
+  precisionStatus(): Promise<HookStatus>;
+  precisionPreview(install: boolean): Promise<[string, string]>;
+  precisionSet(install: boolean): Promise<HookStatus>;
 }
+
+/** Precision mode needs the desktop shell; the browser has no settings file. */
+const NO_PRECISION: HookStatus = {
+  installed: false,
+  events: [],
+  settingsPath: "~/.claude/settings.json",
+  sinkPath: "",
+  command: null,
+  supported: false,
+};
 
 const isTauri = (): boolean => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -41,6 +54,9 @@ async function tauriBridge(): Promise<Bridge> {
     liveSessions: () => invoke<LiveSession[]>("live_sessions"),
     listTranscripts: () => invoke<TranscriptSummary[]>("list_transcripts"),
     loadHistory: (sessionId) => invoke<OrreryEvent[]>("load_history", { sessionId }),
+    precisionStatus: () => invoke<HookStatus>("precision_status"),
+    precisionPreview: (install) => invoke<[string, string]>("precision_preview", { install }),
+    precisionSet: (install) => invoke<HookStatus>("precision_set", { install }),
   };
 }
 
@@ -64,6 +80,9 @@ function demoBridge(): Bridge {
     liveSessions: async () => [],
     listTranscripts: async () => [],
     loadHistory: async () => [],
+    precisionStatus: async () => NO_PRECISION,
+    precisionPreview: async () => ["{}", "{}"] as [string, string],
+    precisionSet: async () => NO_PRECISION,
   };
 }
 

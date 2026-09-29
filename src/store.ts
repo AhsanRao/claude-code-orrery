@@ -6,7 +6,7 @@
 import { create } from "zustand";
 import { getBridge } from "./lib/bridge";
 import { initialState, reduce } from "./lib/reducer";
-import { MAIN, type OrreryState, type TranscriptSummary } from "./lib/types";
+import { MAIN, type HookStatus, type OrreryState, type TranscriptSummary } from "./lib/types";
 import { agentColor } from "./lib/tools";
 import { loadPrices, savePrices, type Price } from "./lib/cost";
 import { notifyWaiting } from "./lib/notify";
@@ -38,6 +38,9 @@ interface UiState {
   query: string;
   /** USD per million tokens, by model family. */
   prices: Record<string, Price>;
+  /** Precision mode (optional hooks); null until the shell answers. */
+  precision: HookStatus | null;
+  settingsOpen: boolean;
 }
 
 interface Actions {
@@ -51,6 +54,10 @@ interface Actions {
   setToastsEnabled(on: boolean): void;
   setQuery(q: string): void;
   setPrice(model: string, price: Price): void;
+  openSettings(open: boolean): void;
+  refreshPrecision(): Promise<void>;
+  previewPrecision(install: boolean): Promise<[string, string]>;
+  setPrecision(install: boolean): Promise<void>;
 }
 
 const TOASTS_KEY = "orrery.toasts";
@@ -77,6 +84,8 @@ export const useStore = create<UiState & Actions>((set, get) => ({
   toastsEnabled: readToastsPref(),
   query: "",
   prices: loadPrices(),
+  precision: null,
+  settingsOpen: false,
 
   apply(events) {
     const prev = get().model;
@@ -162,6 +171,7 @@ export const useStore = create<UiState & Actions>((set, get) => ({
     set({ mode: bridge.mode, claudeHome: home });
     bridge.subscribe((events) => get().apply(events));
     window.setInterval(() => set({ now: Date.now() }), 1000);
+    void get().refreshPrecision();
     const refreshHistory = async () =>
       set({ history: await bridge.listTranscripts().catch(() => []) });
     await refreshHistory();
@@ -185,6 +195,31 @@ export const useStore = create<UiState & Actions>((set, get) => ({
     const prices = { ...get().prices, [model]: price };
     savePrices(prices);
     set({ prices });
+  },
+  openSettings(open) {
+    set({ settingsOpen: open });
+    if (open) void get().refreshPrecision();
+  },
+  async refreshPrecision() {
+    const bridge = await getBridge();
+    set({ precision: await bridge.precisionStatus().catch(() => null) });
+  },
+  async previewPrecision(install) {
+    const bridge = await getBridge();
+    return bridge.precisionPreview(install);
+  },
+  async setPrecision(install) {
+    const bridge = await getBridge();
+    const precision = await bridge.precisionSet(install);
+    set({ precision });
+    get().pushToast({
+      color: install ? "var(--active)" : "var(--muted)",
+      icon: install ? "check" : "x",
+      title: install ? "Precision mode on" : "Precision mode off",
+      message: install
+        ? "Restart your Claude Code sessions to load the hooks"
+        : "Hooks removed from settings.json",
+    });
   },
   setToastsEnabled(on) {
     try {

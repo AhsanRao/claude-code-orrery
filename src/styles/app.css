@@ -1228,6 +1228,156 @@ button {
   vertical-align: -0.15em;
 }
 
+/* ---------- Settings sheet ---------- */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadein var(--dur-2) var(--ease) both;
+}
+.sheet {
+  width: min(620px, 100%);
+  max-height: min(84vh, 720px);
+  overflow-y: auto;
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow);
+  animation: sheetin var(--dur-3) var(--ease) both;
+}
+.sheet header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.sheet h2 {
+  margin: 0;
+  flex: 1;
+  font: 600 18px/1.2 var(--font-display);
+}
+.sheet header button {
+  color: var(--muted);
+  padding: 4px;
+  border-radius: var(--r-1);
+}
+.sheet header button:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.sheet p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 62ch;
+}
+.sheet code {
+  font: 11.5px var(--font-mono);
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: var(--r-1);
+  color: var(--text);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+.tradeoff {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.tradeoff b {
+  color: var(--text);
+}
+.warn {
+  color: var(--wait) !important;
+  border-left: 2px solid var(--wait);
+  padding-left: 10px;
+}
+.diff {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  font: 11.5px/1.6 var(--font-mono);
+  overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  user-select: text;
+}
+.diff .add {
+  color: var(--active);
+}
+.diff .del {
+  color: var(--err);
+}
+.sheet footer {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.sheet footer .state {
+  flex: 1;
+  min-width: 140px;
+  font: 11px var(--font-mono);
+  color: var(--muted);
+}
+.sheet footer .state.on {
+  color: var(--active);
+}
+.sheet footer button {
+  padding: 7px 14px;
+  border-radius: var(--r-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  min-height: 34px;
+}
+.sheet footer .ghost {
+  color: var(--muted);
+  border: 1px solid var(--line-2);
+}
+.sheet footer .primary {
+  background: var(--active);
+  color: var(--bg);
+}
+.sheet footer .danger {
+  background: var(--err);
+  color: var(--bg);
+}
+.sheet footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sheet footer button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheetin {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
 /* Empty / onboarding */
 .onboard {
   display: grid;

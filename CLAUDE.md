@@ -4,7 +4,7 @@ Read-only desktop observer for Claude Code sessions. Tauri 2 + Rust core + React
 
 ## Rules that matter most
 
-- Zero impact on Claude Code: `crates/orrery-core` reads `~/.claude` read-only, appended bytes only, never writes, never hooks, never touches `/tmp/cc-socks`. See `docs/ZERO_IMPACT.md`.
+- Zero impact on Claude Code: `crates/orrery-core` reads `~/.claude` read-only, appended bytes only, never touches `/tmp/cc-socks`. The single exception is `hooks.rs` (opt-in precision mode), which writes `settings.json` only after the user confirms a shown diff. See `docs/ZERO_IMPACT.md`.
 - Transcript parsing is lenient: unknown → ignored, malformed → no events.
 - Logic lives in pure, tested modules (`parser`, `tailer`, `paths`, `history` in Rust; `src/lib/reducer.ts`). Keep `src-tauri` and components thin.
 - Prefer stdlib/CSS over new deps (ponytail mode is enabled for this repo).
@@ -17,7 +17,7 @@ Read-only desktop observer for Claude Code sessions. Tauri 2 + Rust core + React
 
 ## Map
 
-- `crates/orrery-core/src/{paths,tailer,parser,registry,history,engine}.rs`
+- `crates/orrery-core/src/{paths,tailer,parser,registry,history,hooks,engine}.rs`
 - `src-tauri/src/lib.rs` commands + event forwarding (`orrery://events`)
 - `src/lib/{types,reducer,bridge,demo,cost,notify,tray}.ts`, `src/store.ts`, `src/components/*`
 - `docs/PROJECT_PLAN.md` is the roadmap; update it when scope changes.
